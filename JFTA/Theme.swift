@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum JFTATheme {
     static let background = Color(red: 0.035, green: 0.045, blue: 0.052)
@@ -74,4 +75,17 @@ extension View {
         } message: { Text(error.wrappedValue ?? "") }
     }
     func appForm() -> some View { scrollContentBackground(.hidden).background(JFTATheme.background).scrollDismissesKeyboard(.interactively) }
+}
+
+
+extension View {
+    func appKeyboardToolbar() -> some View {
+        toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }
+                    .accessibilityIdentifier("keyboard.done")
+            }
+        }
+    }
 }

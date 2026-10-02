@@ -5,24 +5,32 @@ import CoreImage.CIFilterBuiltins
 struct WelcomeView: View {
     @EnvironmentObject private var store: AppStore
     @State private var profile = MemberProfile()
+    private enum Field: Hashable { case name, email }
+    @FocusState private var focusedField: Field?
     @State private var error: String?
     var body: some View {
+        ScrollViewReader { proxy in
         Page {
-            HStack { Image("Brand").resizable().scaledToFit().frame(width: 68, height: 68); Spacer(); Text("MEMBER APP").font(.caption.weight(.bold)).tracking(2).foregroundStyle(JFTATheme.gold) }
+            HStack { Image("Brand").resizable().scaledToFit().frame(width: 68, height: 68).clipShape(Circle()); Spacer(); Text("MEMBER APP").font(.caption.weight(.bold)).tracking(2).foregroundStyle(JFTATheme.gold) }
             Text("YOUR ROAD.\nYOUR COMMUNITY.").font(.system(.largeTitle, design: .rounded).weight(.black))
             Text("A better place for your paperwork, requests, and member resources.").foregroundStyle(JFTATheme.secondary)
             Image("RoadHero").resizable().scaledToFill().frame(height: 140).clipped().clipShape(RoundedRectangle(cornerRadius: 16)).accessibilityHidden(true)
             Card {
                 Text("Try the local beta").font(.title2.bold())
                 Text("Create a profile on this device. This is not an online account; no password is collected.").font(.subheadline).foregroundStyle(JFTATheme.secondary)
-                TextField("Your name", text: $profile.name).textContentType(.name).textFieldStyle(.roundedBorder).accessibilityIdentifier("welcome.name")
-                TextField("Email (optional)", text: $profile.email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder).accessibilityIdentifier("welcome.email")
-                Button("Enter JFTA") { do { try store.saveProfile(profile) } catch { self.error = error.localizedDescription } }
+                TextField("Your name", text: $profile.name).textContentType(.name).textFieldStyle(.roundedBorder).accessibilityIdentifier("welcome.name").id(Field.name).focused($focusedField, equals: .name).submitLabel(.next).onSubmit { focusedField = .email }
+                TextField("Email (optional)", text: $profile.email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder).accessibilityIdentifier("welcome.email").id(Field.email).focused($focusedField, equals: .email).submitLabel(.done).onSubmit { focusedField = nil }
+                Button("Enter JFTA") { focusedField = nil; do { try store.saveProfile(profile) } catch { self.error = error.localizedDescription } }
                     .buttonStyle(GoldButtonStyle()).accessibilityIdentifier("welcome.enter")
                 NavigationLink("Already have an account?", value: Route.resetAccess).font(.subheadline).accessibilityIdentifier("welcome.access")
             }
             LocalBetaNote()
-        }.navigationTitle("Welcome").appError($error)
+        }.navigationTitle("Welcome").navigationBarTitleDisplayMode(.inline).appError($error)
+            .onChange(of: focusedField) { _, field in
+                guard let field else { return }
+                withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(field, anchor: .center) }
+            }
+        }
     }
 }
 struct ResetAccessView: View {
@@ -41,7 +49,7 @@ struct HomeView: View {
     var body: some View {
         Page {
             HStack(spacing: 12) {
-                Image("Brand").resizable().scaledToFit().frame(width: 48, height: 48).accessibilityHidden(true)
+                Image("Brand").resizable().scaledToFit().frame(width: 48, height: 48).clipShape(Circle()).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) { Text("GOOD TO SEE YOU").font(.caption2.weight(.bold)).tracking(1.4).foregroundStyle(JFTATheme.secondary); Text(store.snapshot.profile.name).font(.title3.bold()).accessibilityIdentifier("home.name") }
                 Spacer()
                 NavigationLink(value: Route.notifications) { Image(systemName: "bell.badge").font(.title3).frame(width: 44, height: 44) }.accessibilityLabel("Notifications").accessibilityIdentifier("home.notifications")
@@ -49,18 +57,12 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Image("RoadHero").resizable().scaledToFill().frame(height: 150).clipped().accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("KEEP MOVING.\nWE'RE BUILDING THE REST.").font(.system(.title, design: .rounded).weight(.black))
+                    Text("KEEP MOVING.\nSTAY ORGANIZED.").font(.system(.title, design: .rounded).weight(.black))
                     Text("Organize your next step, wherever the road takes you.").font(.subheadline).foregroundStyle(JFTATheme.secondary)
                     NavigationLink("Start a request", value: Route.request(.general)).buttonStyle(GoldButtonStyle()).accessibilityIdentifier("home.startRequest")
                 }.padding(18)
             }.background(JFTATheme.surface).clipShape(RoundedRectangle(cornerRadius: 20))
             LocalBetaNote()
-            SectionLabel(text: "Your workspace")
-            HStack(spacing: 14) {
-                stat(value: String(store.snapshot.requests.count), label: "Local drafts", icon: "folder")
-                stat(value: String(store.snapshot.savedOfferIDs.count), label: "Saved offers", icon: "bookmark")
-            }
-            NavigationLink(value: Route.memberPass) { Card { RowLabel(title: "Member pass", detail: "View a clearly marked demo pass", symbol: "qrcode") } }.buttonStyle(.plain).accessibilityIdentifier("home.memberPass")
             SectionLabel(text: "Explore services")
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach([ServiceKind.legal, .health, .financial, .benefits]) { kind in
@@ -73,6 +75,12 @@ struct HomeView: View {
                     }.accessibilityIdentifier("home.service.\(kind.rawValue)")
                 }
             }
+            SectionLabel(text: "Your workspace")
+            HStack(spacing: 14) {
+                stat(value: String(store.snapshot.requests.count), label: "Local drafts", icon: "folder")
+                stat(value: String(store.snapshot.savedOfferIDs.count), label: "Saved offers", icon: "bookmark")
+            }
+            NavigationLink(value: Route.memberPass) { Card { RowLabel(title: "Member pass", detail: "View a clearly marked demo pass", symbol: "qrcode") } }.buttonStyle(.plain).accessibilityIdentifier("home.memberPass")
             if let request = store.snapshot.requests.first {
                 SectionLabel(text: "Latest draft")
                 NavigationLink(value: Route.caseDetail(request.id)) { Card { RowLabel(title: request.title, detail: request.statusLabel, symbol: request.service.symbol) } }.buttonStyle(.plain)
@@ -90,7 +98,7 @@ struct MemberPassView: View {
         Page {
             SectionLabel(text: "Your road. Your identity.")
             Card {
-                HStack { Image("Brand").resizable().scaledToFit().frame(width: 54, height: 54); Spacer(); Text("DEMO PASS").font(.caption.weight(.heavy)).foregroundStyle(JFTATheme.gold) }
+                HStack { Image("Brand").resizable().scaledToFit().frame(width: 54, height: 54).clipShape(Circle()); Spacer(); Text("DEMO PASS").font(.caption.weight(.heavy)).foregroundStyle(JFTATheme.gold) }
                 Text(store.snapshot.profile.name).font(.title.bold()).accessibilityIdentifier("pass.name")
                 Text("Not an active membership").foregroundStyle(JFTATheme.secondary)
                 Divider()

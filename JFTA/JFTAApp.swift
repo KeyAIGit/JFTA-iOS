@@ -44,8 +44,8 @@ struct AppNavigation<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         NavigationStack {
-            content.navigationDestination(for: Route.self) { route in DestinationView(route: route) }
-                .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }.accessibilityIdentifier("keyboard.done") } }
+            content.navigationDestination(for: Route.self) { route in DestinationView(route: route).appKeyboardToolbar() }
+                .appKeyboardToolbar()
                 .toolbarBackground(JFTATheme.background, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
         }

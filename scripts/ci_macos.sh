@@ -14,8 +14,19 @@ mkdir -p "$OUT"
 # A fresh directory preserves the previous run for local developers.
 RUN_OUT="$OUT/$(date -u +%Y%m%dT%H%M%SZ)-$$"
 mkdir -p "$RUN_OUT"
-git rev-parse HEAD > "$RUN_OUT/source-commit.txt"
-git archive --format=zip --prefix=JFTA-iOS/ -o "$RUN_OUT/JFTA-source.zip" HEAD
+# A downloaded source ZIP has no .git directory and must still be testable.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ "$REPO_ROOT" == "$PWD" ]]; then
+  git rev-parse HEAD > "$RUN_OUT/source-commit.txt"
+  git status --porcelain > "$RUN_OUT/working-tree-status.txt"
+  if [[ ! -s "$RUN_OUT/working-tree-status.txt" ]]; then
+    git archive --format=zip --prefix=JFTA-iOS/ -o "$RUN_OUT/JFTA-source.zip" HEAD
+  else
+    printf '%s\n' 'Working tree has local changes; no exact source archive was produced.' > "$RUN_OUT/source-note.txt"
+  fi
+else
+  printf '%s\n' 'UNVERSIONED SOURCE EXPORT: verify against the supplied source manifest.' > "$RUN_OUT/source-commit.txt"
+fi
 printf '%s\n' "$RUN_OUT" > "$OUT/latest-path.txt"
 {
   date -u
@@ -28,6 +39,7 @@ printf '%s\n' "$RUN_OUT" > "$OUT/latest-path.txt"
 } | tee "$RUN_OUT/environment.txt"
 python3 scripts/validate_project.py | tee "$RUN_OUT/project-checks.txt"
 python3 scripts/test_ci_scripts.py 2>&1 | tee "$RUN_OUT/ci-helper-tests.txt"
+python3 scripts/test_test_shards.py 2>&1 | tee "$RUN_OUT/shard-helper-tests.txt"
 xcodebuild -list -project JFTA.xcodeproj | tee "$RUN_OUT/xcode-project.txt"
 python3 scripts/select_simulator.py --json > "$RUN_OUT/simulator.json"
 DEVICE="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["udid"])' "$RUN_OUT/simulator.json")"
@@ -60,13 +72,18 @@ ARGS=(test -project JFTA.xcodeproj -scheme JFTA -configuration Debug
   -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
   -test-timeouts-enabled YES -default-test-execution-time-allowance 300
   -maximum-test-execution-time-allowance 360 CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
-if [[ "$MODE" == unit ]]; then ARGS+=(-only-testing:JFTAUnitTests); fi
+if [[ "$MODE" == unit ]]; then
+  ARGS+=(-only-testing:JFTAUnitTests)
+elif [[ -n "${JFTA_TEST_SHARD:-}" ]]; then
+  python3 scripts/select_test_shard.py "$JFTA_TEST_SHARD" "$RUN_OUT/test-selection.json" > "$RUN_OUT/test-selectors.txt"
+  while IFS= read -r selector; do ARGS+=("$selector"); done < "$RUN_OUT/test-selectors.txt"
+fi
 xcodebuild "${ARGS[@]}" 2>&1 | tee "$RUN_OUT/xcodebuild.log"
 # A successful build is still not a signed IPA and not a real-device acceptance test.
 
 # A Release archive checks the physical-device build path without using Apple credentials.
 # This unsigned archive cannot be installed on an iPhone or uploaded to TestFlight.
-if [[ "$MODE" == all ]]; then
+if [[ "$MODE" == all && "${JFTA_TEST_SHARD:-0}" == 0 ]]; then
   xcodebuild archive -project JFTA.xcodeproj -scheme JFTA -configuration Release     -destination 'generic/platform=iOS' -archivePath "$PWD/build/JFTA-unsigned.xcarchive"     -derivedDataPath "$PWD/build/DerivedData" CODE_SIGNING_ALLOWED=NO     2>&1 | tee "$RUN_OUT/release-archive.log"
   printf '%s\n' 'Release archive built without signing; not an installable IPA.' > "$RUN_OUT/release-status.txt"
 fi

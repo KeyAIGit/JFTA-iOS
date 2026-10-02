@@ -63,8 +63,8 @@ struct DocumentsView: View {
                     }
                     Menu {
                         ShareLink(item: document.url) { Label("Share local copy", systemImage: "square.and.arrow.up") }
-                        Button("Delete local copy", role: .destructive) { pendingDelete = document }
-                    } label: { Image(systemName: "ellipsis.circle").frame(width: 44, height: 44) }.accessibilityLabel("Document actions")
+                        Button("Delete local copy", role: .destructive) { pendingDelete = document }.accessibilityIdentifier("document.delete")
+                    } label: { Image(systemName: "ellipsis.circle").frame(width: 44, height: 44) }.accessibilityLabel("Document actions").accessibilityIdentifier("document.actions")
                 }.disabled(busy)
             }
             #if DEBUG
@@ -84,7 +84,7 @@ struct DocumentsView: View {
             .quickLookPreview($previewURL)
             .task { if vault == nil { vault = DocumentVault(directory: store.documentsDirectory) }; await refresh() }
             .confirmationDialog("Delete only this local copy?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
-                Button("Delete local copy", role: .destructive) { removePending() }
+                Button("Delete local copy", role: .destructive) { removePending() }.accessibilityIdentifier("documents.confirmDelete")
             }.appError($error)
     }
     private func refresh() async { do { documents = try await vault?.list() ?? [] } catch { self.error = error.localizedDescription } }

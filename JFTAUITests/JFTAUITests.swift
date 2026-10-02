@@ -11,11 +11,14 @@ final class JFTAUITests: XCTestCase {
     }
     private func element(_ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
     private func tap(_ id: String, file: StaticString = #filePath, line: UInt = #line) {
-        let button = app.buttons.matching(identifier: id).firstMatch
-        let e = button.exists ? button : element(id)
-        if !e.exists { XCTAssertTrue(e.waitForExistence(timeout: 5), "Missing \(id)", file: file, line: line) }
-        for _ in 0..<7 { if e.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(e.isHittable, "Not hittable: \(id)", file: file, line: line); e.tap()
+        // Lazy grids do not expose off-screen cards before scrolling creates them.
+        for _ in 0..<8 {
+            let button = app.buttons.matching(identifier: id).firstMatch
+            let e = button.exists ? button : element(id)
+            if e.exists && e.isHittable { e.tap(); return }
+            app.swipeUp()
+        }
+        XCTFail("Missing or offscreen: \(id)", file: file, line: line)
     }
     private func tab(_ title: String) {
         let button = app.tabBars.buttons[title]; XCTAssertTrue(button.waitForExistence(timeout: 8)); button.tap()
@@ -23,14 +26,19 @@ final class JFTAUITests: XCTestCase {
     private func shot(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
-    private func type(_ id: String, _ text: String) { let e = element(id); XCTAssertTrue(e.waitForExistence(timeout: 8)); e.tap(); e.typeText(text) }
+    private func type(_ id: String, _ text: String) {
+        let e = element(id); XCTAssertTrue(e.waitForExistence(timeout: 8)); e.tap()
+        let tip = app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] %@", "Speed up your typing")).firstMatch
+        if tip.exists && app.buttons["Continue"].exists { app.buttons["Continue"].tap(); e.tap() }
+        e.typeText(text)
+    }
     private func back() { let button = app.navigationBars.buttons.element(boundBy: 0); XCTAssertTrue(button.waitForExistence(timeout: 5)); button.tap() }
 
     func testWelcomeHasRealFieldsAndValidation() {
         launch(welcome: true); shot("01-welcome")
         tap("welcome.enter")
         XCTAssertTrue(app.alerts["Could not complete action"].waitForExistence(timeout: 3)); app.alerts.buttons["OK"].tap()
-        type("welcome.name", "Road Tester"); type("welcome.email", "tester@example.com"); tap("welcome.enter")
+        type("welcome.name", "Road Tester\n"); type("welcome.email", "tester@example.com\n"); tap("welcome.enter")
         XCTAssertTrue(app.staticTexts["Road Tester"].waitForExistence(timeout: 5)); shot("03-home")
         app.terminate(); launch(reset: false); XCTAssertTrue(app.staticTexts["Road Tester"].waitForExistence(timeout: 5))
     }
@@ -97,9 +105,12 @@ final class JFTAUITests: XCTestCase {
     func testServiceBenefits() { checkService("Benefits") }
     func testQuickLookPreviewAndLocalDelete() {
         launch(); tab("More"); tap("more.documents"); tap("documents.testSample"); tap("document.preview")
-        let done = app.buttons["Done"].firstMatch; XCTAssertTrue(done.waitForExistence(timeout: 8)); shot("document-quicklook"); done.tap()
-        app.buttons["Document actions"].firstMatch.tap(); app.buttons["Delete local copy"].firstMatch.tap()
-        let confirm = app.sheets.buttons["Delete local copy"].firstMatch; XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        let preview = app.otherElements["QLPreviewControllerView"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 8))
+        let done = app.buttons.matching(NSPredicate(format: "identifier == %@ OR label == %@", "QLOverlayDoneButtonAccessibilityIdentifier", "Done")).firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 8)); shot("document-quicklook"); done.tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: preview); waitForExpectations(timeout: 8)
+        tap("document.actions"); tap("document.delete"); tap("documents.confirmDelete")
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: element("document.preview")); waitForExpectations(timeout: 8); shot("documents-after-delete")
     }
     func testKeyboardDismissAndInvalidProfileIsNotSaved() {
