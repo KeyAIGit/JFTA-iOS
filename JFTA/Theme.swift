@@ -26,7 +26,7 @@ struct Page<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         ScrollView { VStack(alignment: .leading, spacing: 20) { content }.padding(20).padding(.bottom, 20) }
-            .background(JFTATheme.background).scrollIndicators(.hidden)
+            .background(JFTATheme.background).scrollIndicators(.hidden).scrollDismissesKeyboard(.interactively)
     }
 }
 struct SectionLabel: View {
@@ -73,5 +73,5 @@ extension View {
             Button("OK", role: .cancel) { error.wrappedValue = nil }
         } message: { Text(error.wrappedValue ?? "") }
     }
-    func appForm() -> some View { scrollContentBackground(.hidden).background(JFTATheme.background) }
+    func appForm() -> some View { scrollContentBackground(.hidden).background(JFTATheme.background).scrollDismissesKeyboard(.interactively) }
 }

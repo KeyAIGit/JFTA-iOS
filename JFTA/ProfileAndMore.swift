@@ -27,7 +27,7 @@ struct MoreView: View {
                 entry("Refer a driver", "Share a beta introduction", "person.badge.plus", .referral, "referral")
                 entry("Help & support", "How the local beta works", "questionmark.circle", .help, "help")
             }
-            Section { Text("JFTA 0.2.0 / Native local beta\nOnline services are not connected.").font(.caption).foregroundStyle(JFTATheme.secondary) }
+            Section { Text("JFTA 0.2.1 / Native local beta\nOnline services are not connected.").font(.caption).foregroundStyle(JFTATheme.secondary) }
         }.appForm().navigationTitle("More")
     }
     private func entry(_ title: String, _ detail: String, _ icon: String, _ route: Route, _ identifier: String) -> some View {

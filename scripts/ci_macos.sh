@@ -14,6 +14,8 @@ mkdir -p "$OUT"
 # A fresh directory preserves the previous run for local developers.
 RUN_OUT="$OUT/$(date -u +%Y%m%dT%H%M%SZ)-$$"
 mkdir -p "$RUN_OUT"
+git rev-parse HEAD > "$RUN_OUT/source-commit.txt"
+git archive --format=zip --prefix=JFTA-iOS/ -o "$RUN_OUT/JFTA-source.zip" HEAD
 printf '%s\n' "$RUN_OUT" > "$OUT/latest-path.txt"
 {
   date -u
@@ -25,6 +27,7 @@ printf '%s\n' "$RUN_OUT" > "$OUT/latest-path.txt"
   xcrun simctl list runtimes
 } | tee "$RUN_OUT/environment.txt"
 python3 scripts/validate_project.py | tee "$RUN_OUT/project-checks.txt"
+python3 scripts/test_ci_scripts.py 2>&1 | tee "$RUN_OUT/ci-helper-tests.txt"
 xcodebuild -list -project JFTA.xcodeproj | tee "$RUN_OUT/xcode-project.txt"
 python3 scripts/select_simulator.py --json > "$RUN_OUT/simulator.json"
 DEVICE="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["udid"])' "$RUN_OUT/simulator.json")"
@@ -34,6 +37,7 @@ cleanup() {
   trap - EXIT
   # Export actual screenshots, never substitute design-reference images.
   if [[ -d "$RESULT" ]]; then
+    xcrun xcresulttool get test-results summary --path "$RESULT" > "$RUN_OUT/test-summary.json" 2> "$RUN_OUT/summary-export.log" || true
     mkdir -p "$RUN_OUT/screenshots"
     if ! xcrun xcresulttool export attachments --path "$RESULT" --output-path "$RUN_OUT/screenshots" > "$RUN_OUT/attachment-export.log" 2>&1; then
       echo 'Attachment export failed; retain the xcresult to inspect in Xcode.' >> "$RUN_OUT/attachment-export.log"
@@ -59,3 +63,10 @@ ARGS=(test -project JFTA.xcodeproj -scheme JFTA -configuration Debug
 if [[ "$MODE" == unit ]]; then ARGS+=(-only-testing:JFTAUnitTests); fi
 xcodebuild "${ARGS[@]}" 2>&1 | tee "$RUN_OUT/xcodebuild.log"
 # A successful build is still not a signed IPA and not a real-device acceptance test.
+
+# A Release archive checks the physical-device build path without using Apple credentials.
+# This unsigned archive cannot be installed on an iPhone or uploaded to TestFlight.
+if [[ "$MODE" == all ]]; then
+  xcodebuild archive -project JFTA.xcodeproj -scheme JFTA -configuration Release     -destination 'generic/platform=iOS' -archivePath "$PWD/build/JFTA-unsigned.xcarchive"     -derivedDataPath "$PWD/build/DerivedData" CODE_SIGNING_ALLOWED=NO     2>&1 | tee "$RUN_OUT/release-archive.log"
+  printf '%s\n' 'Release archive built without signing; not an installable IPA.' > "$RUN_OUT/release-status.txt"
+fi

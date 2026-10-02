@@ -84,4 +84,26 @@ final class JFTAUITests: XCTestCase {
         launch()
         for name in ["Home", "Cases", "Benefits", "More"] { tab(name); XCTAssertTrue(element("localBetaNotice").exists || name == "Benefits" || name == "More"); shot("tab-" + name.lowercased()) }
     }
+
+    func testServiceFormsAndConsultationRoutes() {
+        for kind in ["Legal", "Health", "Financial", "Benefits"] {
+            launch(); tap("home.service." + kind)
+            XCTAssertTrue(app.navigationBars[kind + " support"].waitForExistence(timeout: 5)); shot("service-" + kind.lowercased())
+            if kind == "Health" || kind == "Financial" { tap("service.consultation"); XCTAssertTrue(app.navigationBars["Consultation draft"].waitForExistence(timeout: 5)); shot("consultation-" + kind.lowercased()); back() }
+            tap("service.start"); XCTAssertTrue(element("request.title").waitForExistence(timeout: 5)); shot("request-" + kind.lowercased())
+        }
+    }
+    func testQuickLookPreviewAndLocalDelete() {
+        launch(); tab("More"); tap("more.documents"); tap("documents.testSample"); tap("document.preview")
+        let done = app.buttons["Done"].firstMatch; XCTAssertTrue(done.waitForExistence(timeout: 8)); shot("document-quicklook"); done.tap()
+        app.buttons["Document actions"].firstMatch.tap(); app.buttons["Delete local copy"].firstMatch.tap()
+        let confirm = app.sheets.buttons["Delete local copy"].firstMatch; XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: element("document.preview")); waitForExpectations(timeout: 8); shot("documents-after-delete")
+    }
+    func testKeyboardDismissAndInvalidProfileIsNotSaved() {
+        launch(); tab("More"); tap("more.profile"); type("profile.email", "invalid")
+        tap("keyboard.done"); expectation(for: NSPredicate(format: "count == 0"), evaluatedWith: app.keyboards); waitForExpectations(timeout: 5)
+        tap("profile.save"); XCTAssertTrue(app.alerts["Could not complete action"].waitForExistence(timeout: 5)); app.alerts.buttons["OK"].tap(); shot("profile-validation")
+        app.terminate(); launch(reset: false); tab("More"); tap("more.profile"); XCTAssertNotEqual(element("profile.email").value as? String, "invalid")
+    }
 }

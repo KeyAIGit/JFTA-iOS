@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct JFTAApp: App {
@@ -44,6 +45,7 @@ struct AppNavigation<Content: View>: View {
     var body: some View {
         NavigationStack {
             content.navigationDestination(for: Route.self) { route in DestinationView(route: route) }
+                .toolbar { ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("Done") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil) }.accessibilityIdentifier("keyboard.done") } }
                 .toolbarBackground(JFTATheme.background, for: .navigationBar)
                 .toolbarBackground(.visible, for: .navigationBar)
         }

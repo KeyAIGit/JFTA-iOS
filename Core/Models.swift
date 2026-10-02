@@ -71,7 +71,7 @@ struct AppSnapshot: Codable, Equatable, Sendable {
     var preferredPlan = "Standard Plus"
 }
 enum InputError: LocalizedError, Equatable {
-    case name, email, title, details, message, tooManyItems
+    case name, email, title, details, message, tooManyItems, missingRecord
     var errorDescription: String? {
         switch self {
         case .name: return "Enter a name between 2 and 80 characters."
@@ -79,6 +79,7 @@ enum InputError: LocalizedError, Equatable {
         case .title: return "Enter a title between 3 and 100 characters."
         case .details: return "Enter details between 10 and 3,000 characters."
         case .message: return "Enter a message between 1 and 2,000 characters."
+        case .missingRecord: return "The local item no longer exists. Nothing was saved. Return to the list and try again."
         case .tooManyItems: return "This local beta has reached its item limit."
         }
     }
@@ -124,4 +125,34 @@ struct MarketListing: Identifiable, Hashable, Sendable {
         .init(id: "inspection", title: "Pre-purchase inspection", category: "Services", symbol: "checkmark.shield", description: "Sample service listing. Provider identity, availability, pricing, and terms are not configured."),
         .init(id: "parking", title: "Truck parking", category: "Parking", symbol: "parkingsign.circle", description: "Sample parking listing. No space is reserved and no payment is taken.")
     ]
+}
+
+// Validated mutations shared by the UI and executable Foundation tests.
+extension AppSnapshot {
+    @discardableResult
+    mutating func storeRequest(service: ServiceKind, title: String, details: String, state: String, date: Date, editingID: UUID? = nil) throws -> UUID {
+        try Validation.request(title: title, details: details)
+        let result: UUID
+        if let id = editingID {
+            guard let i = requests.firstIndex(where: { $0.id == id }) else { throw InputError.missingRecord }
+            requests[i].service = service; requests[i].title = Validation.trimmed(title); requests[i].details = Validation.trimmed(details)
+            requests[i].state = Validation.trimmed(state); requests[i].incidentDate = date; requests[i].updatedAt = Date(); result = id
+        } else {
+            guard requests.count < 500 else { throw InputError.tooManyItems }
+            let request = ServiceRequest(service: service, title: Validation.trimmed(title), details: Validation.trimmed(details), state: Validation.trimmed(state), incidentDate: date)
+            requests.insert(request, at: 0); result = request.id
+        }
+        if profile.localNotifications { notices.insert(.init(title: "Draft saved", detail: "\(Validation.trimmed(title)) is saved only on this device. Nothing has been sent."), at: 0); notices = Array(notices.prefix(100)) }
+        return result
+    }
+    mutating func setDocuments(_ ids: [String], requestID: UUID) throws {
+        guard let i = requests.firstIndex(where: { $0.id == requestID }) else { throw InputError.missingRecord }
+        let unique = Array(Set(ids)).sorted(); guard unique.count <= 100 else { throw InputError.tooManyItems }; requests[i].documentIDs = unique; requests[i].updatedAt = Date()
+    }
+    mutating func appendReply(postID: UUID, text: String) throws {
+        try Validation.message(text)
+        guard let i = posts.firstIndex(where: { $0.id == postID }) else { throw InputError.missingRecord }
+        guard posts[i].replies.count < 100 else { throw InputError.tooManyItems }
+        posts[i].replies.append(.init(text: Validation.trimmed(text), author: profile.name))
+    }
 }
