@@ -1,0 +1,60 @@
+name: iOS native build and tests
+
+# Intentionally manual. Uploading source does not consume any runner minutes.
+# The checkbox is an acknowledgement, NOT an enforcement of a GitHub billing cap.
+on:
+  workflow_dispatch:
+    inputs:
+      no_charge_guard_confirmed:
+        description: 'I verified included quota AND an account-level stop-spending guard (no paid usage)'
+        required: true
+        type: boolean
+        default: false
+      tests:
+        description: 'all = unit plus UI tests; unit = quicker first compiler check'
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - unit
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jfta-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator:
+    # Skip before allocating a Mac when the explicit acknowledgement is absent.
+    if: ${{ inputs.no_charge_guard_confirmed == true && github.event.repository.private == true }}
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      TEST_MODE: ${{ inputs.tests }}
+    steps:
+      - name: Check out private source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify the pinned Xcode installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$DEVELOPER_DIR"
+          xcodebuild -version
+      - name: Compile and run XCTest on an installed iPhone Simulator
+        shell: bash
+        run: bash scripts/ci_macos.sh "$TEST_MODE"
+      - name: Preserve real test evidence
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: jfta-ios-evidence-${{ github.run_number }}-${{ github.run_attempt }}
+          path: build/ci/
+          retention-days: 3
+          compression-level: 9
+          if-no-files-found: warn
