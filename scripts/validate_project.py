@@ -46,7 +46,7 @@ def validate() -> list[str]:
     workflow = (ROOT / '.github/workflows/ios.yml').read_text()
     check('workflow_dispatch:' in workflow and not re.search(r'^  (push|pull_request|schedule):', workflow, re.M), 'CI runs manually only')
     check('runs-on: macos-26\n' in workflow and '-xlarge' not in workflow and '-large' not in workflow, 'Only standard macos-26 runner selected')
-    check('timeout-minutes: 20' in workflow and 'retention-days: 3' in workflow, 'Job time and evidence retention bounded')
+    check('timeout-minutes: 40' in workflow and 'retention-days: 3' in workflow, 'Job time and evidence retention bounded')
     check('github.event.repository.private == false' in workflow, 'Public-only gate blocks private-repository allocation')
     check('persist-credentials: false' in workflow, 'Checkout does not persist repository credentials')
     actions = re.findall(r'uses: ([^\n]+)', workflow)

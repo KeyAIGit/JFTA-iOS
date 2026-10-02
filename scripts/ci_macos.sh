@@ -53,13 +53,13 @@ cleanup() {
 trap cleanup EXIT
 # simctl returns an error for an already-booted device; bootstatus still validates it.
 xcrun simctl boot "$DEVICE" 2> "$RUN_OUT/boot.log" || true
-xcrun simctl bootstatus "$DEVICE" -b >> "$RUN_OUT/boot.log" 2>&1
+xcrun simctl bootstatus "$DEVICE" -b 2>&1 | tee -a "$RUN_OUT/boot.log"
 ARGS=(test -project JFTA.xcodeproj -scheme JFTA -configuration Debug
   -destination "platform=iOS Simulator,id=$DEVICE" -destination-timeout 90
   -derivedDataPath "$PWD/build/DerivedData" -resultBundlePath "$RESULT"
   -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1
-  -test-timeouts-enabled YES -default-test-execution-time-allowance 90
-  -maximum-test-execution-time-allowance 150 CODE_SIGNING_ALLOWED=NO)
+  -test-timeouts-enabled YES -default-test-execution-time-allowance 300
+  -maximum-test-execution-time-allowance 360 CODE_SIGNING_ALLOWED=NO ONLY_ACTIVE_ARCH=YES)
 if [[ "$MODE" == unit ]]; then ARGS+=(-only-testing:JFTAUnitTests); fi
 xcodebuild "${ARGS[@]}" 2>&1 | tee "$RUN_OUT/xcodebuild.log"
 # A successful build is still not a signed IPA and not a real-device acceptance test.

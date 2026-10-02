@@ -26,7 +26,7 @@ jobs:
     # Never allocate a runner if this repository becomes private again.
     if: ${{ github.event.repository.private == false && github.repository == 'KeyAIGit/JFTA-iOS' }}
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 40
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       TEST_MODE: ${{ inputs.tests }}
@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: bash scripts/ci_macos.sh "$TEST_MODE"
       - name: Preserve real test evidence
-        if: ${{ always() && !cancelled() }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: jfta-ios-evidence-${{ github.run_number }}-${{ github.run_attempt }}

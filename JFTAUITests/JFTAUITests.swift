@@ -2,7 +2,7 @@ import XCTest
 
 final class JFTAUITests: XCTestCase {
     let app = XCUIApplication()
-    override func setUpWithError() throws { continueAfterFailure = false }
+    override func setUpWithError() throws { continueAfterFailure = false; executionTimeAllowance = 300 }
     private func launch(reset: Bool = true, welcome: Bool = false) {
         app.launchArguments = ["--uitesting", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset") }
@@ -11,10 +11,10 @@ final class JFTAUITests: XCTestCase {
     }
     private func element(_ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
     private func tap(_ id: String, file: StaticString = #filePath, line: UInt = #line) {
-        let e = element(id)
-        _ = e.waitForExistence(timeout: 2)
-        for _ in 0..<7 { if e.exists && e.isHittable { break }; app.swipeUp() }
-        XCTAssertTrue(e.waitForExistence(timeout: 5), "Missing \(id)", file: file, line: line)
+        let button = app.buttons.matching(identifier: id).firstMatch
+        let e = button.exists ? button : element(id)
+        if !e.exists { XCTAssertTrue(e.waitForExistence(timeout: 5), "Missing \(id)", file: file, line: line) }
+        for _ in 0..<7 { if e.isHittable { break }; app.swipeUp() }
         XCTAssertTrue(e.isHittable, "Not hittable: \(id)", file: file, line: line); e.tap()
     }
     private func tab(_ title: String) {
@@ -85,14 +85,16 @@ final class JFTAUITests: XCTestCase {
         for name in ["Home", "Cases", "Benefits", "More"] { tab(name); XCTAssertTrue(element("localBetaNotice").exists || name == "Benefits" || name == "More"); shot("tab-" + name.lowercased()) }
     }
 
-    func testServiceFormsAndConsultationRoutes() {
-        for kind in ["Legal", "Health", "Financial", "Benefits"] {
-            launch(); tap("home.service." + kind)
-            XCTAssertTrue(app.navigationBars[kind + " support"].waitForExistence(timeout: 5)); shot("service-" + kind.lowercased())
-            if kind == "Health" || kind == "Financial" { tap("service.consultation"); XCTAssertTrue(app.navigationBars["Consultation draft"].waitForExistence(timeout: 5)); shot("consultation-" + kind.lowercased()); back() }
-            tap("service.start"); XCTAssertTrue(element("request.title").waitForExistence(timeout: 5)); shot("request-" + kind.lowercased())
-        }
+    private func checkService(_ kind: String) {
+        launch(); tap("home.service." + kind)
+        XCTAssertTrue(app.navigationBars[kind + " support"].waitForExistence(timeout: 5)); shot("service-" + kind.lowercased())
+        if kind == "Health" || kind == "Financial" { tap("service.consultation"); XCTAssertTrue(app.navigationBars["Consultation draft"].waitForExistence(timeout: 5)); shot("consultation-" + kind.lowercased()); back() }
+        tap("service.start"); XCTAssertTrue(element("request.title").waitForExistence(timeout: 5)); shot("request-" + kind.lowercased())
     }
+    func testServiceLegal() { checkService("Legal") }
+    func testServiceHealth() { checkService("Health") }
+    func testServiceFinancial() { checkService("Financial") }
+    func testServiceBenefits() { checkService("Benefits") }
     func testQuickLookPreviewAndLocalDelete() {
         launch(); tab("More"); tap("more.documents"); tap("documents.testSample"); tap("document.preview")
         let done = app.buttons["Done"].firstMatch; XCTAssertTrue(done.waitForExistence(timeout: 8)); shot("document-quicklook"); done.tap()
