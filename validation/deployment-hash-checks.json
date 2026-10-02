@@ -1,0 +1,132 @@
+﻿[
+    {
+        "path":  ".github/workflows/ios.yml",
+        "matches":  true,
+        "sha256":  "37545d3e57e50f3ae8e7a2b31461c5af3bd6025fdbc08ea520796c6425ce2fdd"
+    },
+    {
+        "path":  "Core/LocalDocumentStore.swift",
+        "matches":  true,
+        "sha256":  "339fe173915eea150b2eac2563f644cfcac31ef4669df6d9f02cca28d2beab56"
+    },
+    {
+        "path":  "Core/Models.swift",
+        "matches":  true,
+        "sha256":  "b6ea0e00288e728749e944fb59ad8baabc82bbeddd414302758ed6a30b682b3b"
+    },
+    {
+        "path":  "Core/SnapshotStore.swift",
+        "matches":  true,
+        "sha256":  "0f74c560a43509dbc02982c54c3b5a4b2adb448ec1f32774ab354f8ae774179c"
+    },
+    {
+        "path":  "JFTA.xcodeproj/project.pbxproj",
+        "matches":  true,
+        "sha256":  "21ca997f22c14b61c4098497764c43ebe104075799c52f174336d02748da2044"
+    },
+    {
+        "path":  "JFTA.xcodeproj/xcshareddata/xcschemes/JFTA.xcscheme",
+        "matches":  true,
+        "sha256":  "988a53b48db234910b2edafdb6d3a8881b5f78567059f1a6ba3064ec6561fd9a"
+    },
+    {
+        "path":  "JFTA/AppStore.swift",
+        "matches":  true,
+        "sha256":  "cb59402bf1ee79f758c3e7996cb6f6f835f8b01c6874195a1b8eb5d685ee55d9"
+    },
+    {
+        "path":  "JFTA/BenefitsAndResources.swift",
+        "matches":  true,
+        "sha256":  "2689d1a17cb7094c7f978d5c41028bf577a3ad24e882600d699efc9630cfd91d"
+    },
+    {
+        "path":  "JFTA/Cases.swift",
+        "matches":  true,
+        "sha256":  "b81293cdc36a38dd0aed8abc4bc6b2e1705f399cac287cc20056066c9fbd81a8"
+    },
+    {
+        "path":  "JFTA/CommunityAndMarketplace.swift",
+        "matches":  true,
+        "sha256":  "d2c3d055059319946b7c1a13802afecacab502a83ca91a28f8967a523f8ea665"
+    },
+    {
+        "path":  "JFTA/Documents.swift",
+        "matches":  true,
+        "sha256":  "758d7849cf881264d3d214fca1e5f4a5c3a3fb9be5cf4de4e7150e98f0e918bd"
+    },
+    {
+        "path":  "JFTA/HomeAndAccess.swift",
+        "matches":  true,
+        "sha256":  "b77a8e661679758a267d31b96a621de0fcc7cf0301ed17d217f7b3d4fc6ba341"
+    },
+    {
+        "path":  "JFTA/Info.plist",
+        "matches":  true,
+        "sha256":  "c753e1df9434edcb35dc180a57cb3f47d63e45e0e3e6546a713f0b509f5429a5"
+    },
+    {
+        "path":  "JFTA/JFTAApp.swift",
+        "matches":  true,
+        "sha256":  "90c32a5566bad15beb1492b48f98c0a3729d036d329981d8d977b8ee467ac52f"
+    },
+    {
+        "path":  "JFTA/PrivacyInfo.xcprivacy",
+        "matches":  true,
+        "sha256":  "97e32f473284df703a5fc921076956ef84a765ca9e7ba2e7ba61350652d12727"
+    },
+    {
+        "path":  "JFTA/ProfileAndMore.swift",
+        "matches":  true,
+        "sha256":  "f60589a5973027958f854c62487dff1f79d1ba1baaf37cca6ff7ba4e354a41a6"
+    },
+    {
+        "path":  "JFTA/Theme.swift",
+        "matches":  true,
+        "sha256":  "4f3bda18855a1567b3c86f6beede1d9dd23f90b54dfe732960d0231c0bc4ebcd"
+    },
+    {
+        "path":  "JFTAUITests/JFTAUITests.swift",
+        "matches":  true,
+        "sha256":  "050454133855ad5eec1ad2fe71f9c418462ee063b7e939fa609e413ada210cc5"
+    },
+    {
+        "path":  "Package.swift",
+        "matches":  true,
+        "sha256":  "b7ef5a40cce8da873c37b9f4dd9f4d76a5b97b9faa1d26d65f6a38e810294440"
+    },
+    {
+        "path":  "Tests/JFTACoreTests/CoreTests.swift",
+        "matches":  true,
+        "sha256":  "73d1f640dd297028fe9bfc8d0c84e74bdcdb15374a1cc965ffbf0ec626c5e5b3"
+    },
+    {
+        "path":  "docs/project-manifest.json",
+        "matches":  true,
+        "sha256":  "e4ca34f87025bbcb60721643e7bec220ea6f91c791f3a20a5bacdaf9f1e93fcb"
+    },
+    {
+        "path":  "scripts/ci_macos.sh",
+        "matches":  true,
+        "sha256":  "8cd11919e2e052e761ed07897f068ddd0483676dc2142883e7a3ea5ff678a0c1"
+    },
+    {
+        "path":  "scripts/generate_project.py",
+        "matches":  true,
+        "sha256":  "12324a6ed3ddcb9d9aeabad3eb7518ac2a5c49ac9eff50fcba3669972f60796d"
+    },
+    {
+        "path":  "scripts/select_simulator.py",
+        "matches":  true,
+        "sha256":  "fb4e5dd8434efde90b806ceae95169fe07a1481c49443a18fde7e7b8e3376332"
+    },
+    {
+        "path":  "scripts/test_ci_scripts.py",
+        "matches":  true,
+        "sha256":  "a4fb280bcb5db3298514be1ae2a53b9fb77719f3f002b6bad07aaca9f58678bf"
+    },
+    {
+        "path":  "scripts/validate_project.py",
+        "matches":  true,
+        "sha256":  "3d5670fb2c4dd65325332c2d8f351ecf49f36cb52dc553e898353f9a50e364db"
+    }
+]

@@ -1,0 +1,44 @@
+PASS: Source paths are unique
+PASS: Project reference exists: Core/LocalDocumentStore.swift
+PASS: Project reference exists: Core/Models.swift
+PASS: Project reference exists: Core/SnapshotStore.swift
+PASS: Project reference exists: JFTA/AppStore.swift
+PASS: Project reference exists: JFTA/BenefitsAndResources.swift
+PASS: Project reference exists: JFTA/Cases.swift
+PASS: Project reference exists: JFTA/CommunityAndMarketplace.swift
+PASS: Project reference exists: JFTA/Documents.swift
+PASS: Project reference exists: JFTA/HomeAndAccess.swift
+PASS: Project reference exists: JFTA/JFTAApp.swift
+PASS: Project reference exists: JFTA/ProfileAndMore.swift
+PASS: Project reference exists: JFTA/Theme.swift
+PASS: Project reference exists: Tests/JFTACoreTests/CoreTests.swift
+PASS: Project reference exists: JFTAUITests/JFTAUITests.swift
+PASS: App, unit test and UI test targets exist
+PASS: No Apple signing team is embedded
+PASS: Minimum iOS is 17.0
+PASS: Shared scheme includes both test bundles
+PASS: Valid plist: Info.plist
+PASS: Valid plist: PrivacyInfo.xcprivacy
+PASS: Asset exists: icon-40.png
+PASS: Asset exists: icon-60.png
+PASS: Asset exists: icon-58.png
+PASS: Asset exists: icon-87.png
+PASS: Asset exists: icon-80.png
+PASS: Asset exists: icon-120.png
+PASS: Asset exists: icon-120.png
+PASS: Asset exists: icon-180.png
+PASS: Asset exists: icon-1024.png
+PASS: Asset exists: image.png
+PASS: Asset exists: image.jpg
+PASS: No full-screen reference-image hit areas in runtime
+PASS: Native forms, navigation and file import exist
+PASS: No networking or web-wrapper implementation in this local beta
+PASS: No known private-key or token patterns in runtime source
+PASS: CI runs manually only
+PASS: Only standard macos-26 runner selected
+PASS: Job time and evidence retention bounded
+PASS: Explicit billing acknowledgement gates allocation
+PASS: Checkout does not persist repository credentials
+PASS: All third-party workflow actions pinned to exact commits
+
+42 structural checks passed. No claim of iOS compilation or runtime verification.

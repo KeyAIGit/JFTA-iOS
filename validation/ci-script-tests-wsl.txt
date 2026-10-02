@@ -1,0 +1,12 @@
+test_ignores_ipad (__main__.SimulatorSelectionTests.test_ignores_ipad) ... ok
+test_ignores_old_ios (__main__.SimulatorSelectionTests.test_ignores_old_ios) ... ok
+test_ignores_unavailable (__main__.SimulatorSelectionTests.test_ignores_unavailable) ... ok
+test_missing_payload_fails (__main__.SimulatorSelectionTests.test_missing_payload_fails) ... ok
+test_picks_newest_ios (__main__.SimulatorSelectionTests.test_picks_newest_ios) ... ok
+test_prefers_standard_size (__main__.SimulatorSelectionTests.test_prefers_standard_size) ... ok
+test_rejects_bad_udid (__main__.SimulatorSelectionTests.test_rejects_bad_udid) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.000s
+
+OK

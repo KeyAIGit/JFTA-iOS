@@ -1,0 +1,27 @@
+{
+  "app_sources": [
+    "Core/LocalDocumentStore.swift",
+    "Core/Models.swift",
+    "Core/SnapshotStore.swift",
+    "JFTA/AppStore.swift",
+    "JFTA/BenefitsAndResources.swift",
+    "JFTA/Cases.swift",
+    "JFTA/CommunityAndMarketplace.swift",
+    "JFTA/Documents.swift",
+    "JFTA/HomeAndAccess.swift",
+    "JFTA/JFTAApp.swift",
+    "JFTA/ProfileAndMore.swift",
+    "JFTA/Theme.swift"
+  ],
+  "unit_sources": [
+    "Tests/JFTACoreTests/CoreTests.swift"
+  ],
+  "ui_sources": [
+    "JFTAUITests/JFTAUITests.swift"
+  ],
+  "target_ids": {
+    "JFTA": "228F048C924B351E1CC48EBF",
+    "JFTAUnitTests": "F5044CDA439C7CF390685583",
+    "JFTAUITests": "2F423DE29763A233B447D894"
+  }
+}
