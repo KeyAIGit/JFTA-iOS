@@ -1,3 +1,5 @@
+> CI now runs only while this repository is PUBLIC, on the standard macos-26 runner. Returning to private disables Mac job allocation. No Apple credentials are used. Publication does not grant an open-source license.
+
 # JFTA iOS
 
 Native SwiftUI local beta **0.2.0 (3)** for the JFTA trucking/member app. This is not a screenshot wrapper. The source, Xcode project, shared scheme, assets and automated test code are stored in this private repository.

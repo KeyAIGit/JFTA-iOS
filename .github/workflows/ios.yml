@@ -1,15 +1,10 @@
 name: iOS native build and tests
 
 # Intentionally manual. Uploading source does not consume any runner minutes.
-# The checkbox is an acknowledgement, NOT an enforcement of a GitHub billing cap.
+# Public-only job gate avoids consuming paid private-repository minutes.
 on:
   workflow_dispatch:
     inputs:
-      no_charge_guard_confirmed:
-        description: 'I verified included quota AND an account-level stop-spending guard (no paid usage)'
-        required: true
-        type: boolean
-        default: false
       tests:
         description: 'all = unit plus UI tests; unit = quicker first compiler check'
         required: true
@@ -28,15 +23,15 @@ concurrency:
 
 jobs:
   simulator:
-    # Skip before allocating a Mac when the explicit acknowledgement is absent.
-    if: ${{ inputs.no_charge_guard_confirmed == true && github.event.repository.private == true }}
+    # Never allocate a runner if this repository becomes private again.
+    if: ${{ github.event.repository.private == false && github.repository == 'KeyAIGit/JFTA-iOS' }}
     runs-on: macos-26
     timeout-minutes: 20
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       TEST_MODE: ${{ inputs.tests }}
     steps:
-      - name: Check out private source
+      - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
