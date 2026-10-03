@@ -1,4 +1,4 @@
-# JFTA 0.2.2 (5): handoff to the authorized Apple account owner
+# JFTA 0.2.3 (6): handoff to the authorized Apple account owner
 
 The source is a native, local-functionality beta. Consult `QA_STATUS.md` for the exact tested revision and limitations. No Apple account, signing key, certificate, provisioning profile, IPA or App Store Connect record was created or used by GitHub CI.
 
@@ -30,3 +30,7 @@ Official sources checked 2026-10-02:
 [2] https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/
 [3] https://developer.apple.com/documentation/xcode/distributing-your-app-for-beta-testing-and-releases
 [4] https://developer.apple.com/help/app-store-connect/test-a-beta-version/testflight-overview/
+
+## Version 0.2.3
+
+Use version 0.2.3 and an unused build number (the project is build 6). Add a sample document is available in Release. Verify draft attachment selection, preview closure, sharing, post editing/deletion and unsaved profile edits on the real device. Full automated results are in QA_STATUS.md.
