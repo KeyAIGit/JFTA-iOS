@@ -5,7 +5,7 @@ on:
       tests:
         description: Test scope
         type: choice
-        options: [all, unit, release]
+        options: [all, unit, release, compact]
         default: all
         required: true
 permissions:
@@ -40,6 +40,8 @@ jobs:
         run: |
           if [[ "${{ inputs.tests }}" == "release" ]]; then
             bash scripts/ci_release_smoke.sh
+          elif [[ "${{ inputs.tests }}" == "compact" ]]; then
+            bash scripts/ci_compact_smoke.sh
           else
             bash scripts/ci_macos.sh "${{ inputs.tests }}"
           fi
