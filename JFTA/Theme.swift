@@ -2,6 +2,9 @@ import SwiftUI
 import UIKit
 
 enum JFTATheme {
+    @MainActor static func dismissKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
     static let background = Color(red: 0.035, green: 0.045, blue: 0.052)
     static let surface = Color(red: 0.075, green: 0.087, blue: 0.095)
     static let gold = Color(red: 1.0, green: 0.76, blue: 0.06)

@@ -27,7 +27,7 @@ struct MoreView: View {
                 entry("Refer a driver", "Share a beta introduction", "person.badge.plus", .referral, "referral")
                 entry("Help & support", "How the local beta works", "questionmark.circle", .help, "help")
             }
-            Section { Text("JFTA 0.2.1 / Native local beta\nOnline services are not connected.").font(.caption).foregroundStyle(JFTATheme.secondary) }
+            Section { Text("JFTA 0.2.2 / Native local beta\nOnline services are not connected.").font(.caption).foregroundStyle(JFTATheme.secondary) }
         }.appForm().navigationTitle("More")
     }
     private func entry(_ title: String, _ detail: String, _ icon: String, _ route: Route, _ identifier: String) -> some View {
@@ -57,7 +57,7 @@ struct ProfileView: View {
             Section { LocalBetaNote(text: "No online account, password, verified membership, or push-notification service is created.") }
         }.appForm().navigationTitle("Profile & settings")
             .onAppear { if !loaded { profile = store.snapshot.profile; loaded = true } }
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Save") { do { try store.saveProfile(profile); saved = true } catch { self.error = error.localizedDescription } }.fontWeight(.bold).accessibilityIdentifier("profile.save") } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Save") { do { try store.saveProfile(profile); JFTATheme.dismissKeyboard(); saved = true } catch { self.error = error.localizedDescription } }.fontWeight(.bold).accessibilityIdentifier("profile.save") } }
             .appError($error).alert("Profile saved", isPresented: $saved) { Button("OK", role: .cancel) {} } message: { Text("Your profile was saved on this device.") }
     }
 }

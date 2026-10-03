@@ -39,6 +39,13 @@ struct CasesView: View {
             }.appError($error)
     }
 }
+private struct RequestFormValues: Equatable {
+    let service: ServiceKind
+    let title: String
+    let details: String
+    let state: String
+    let date: Date
+}
 struct RequestFormView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
@@ -52,6 +59,10 @@ struct RequestFormView: View {
     @State private var initialized = false
     @State private var error: String?
     @State private var saved = false
+    @State private var originalValues: RequestFormValues?
+    @State private var confirmDiscard = false
+    private var currentValues: RequestFormValues { .init(service: service, title: title, details: details, state: state, date: date) }
+    private var hasUnsavedChanges: Bool { originalValues.map { $0 != currentValues } ?? false }
     var body: some View {
         Form {
             Section { LocalBetaNote(text: consultation ? "This saves a consultation preference, not an appointment. No professional will be contacted." : "Save a local draft. No request will be sent to a professional.") }
@@ -70,18 +81,30 @@ struct RequestFormView: View {
             }
             Section { Text("You can attach sample documents after saving the draft. Do not enter sensitive personal, medical, or legal information in this beta.").font(.footnote).foregroundStyle(JFTATheme.secondary) }
         }.appForm().navigationTitle(consultation ? "Consultation draft" : (editingID == nil ? "Start a request" : "Edit draft"))
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Save") { save() }.fontWeight(.bold).accessibilityIdentifier("request.save") } }
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { if hasUnsavedChanges { confirmDiscard = true } else { dismiss() } } label: { Label("Back", systemImage: "chevron.left") }
+                        .accessibilityIdentifier("request.back")
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { save() }.fontWeight(.bold).accessibilityIdentifier("request.save") }
+            }
+            .confirmationDialog("Discard unsaved changes?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Keep editing", role: .cancel) {}.accessibilityIdentifier("request.keepEditing")
+                Button("Discard changes", role: .destructive) { dismiss() }.accessibilityIdentifier("request.discard")
+            } message: { Text("Your changes have not been saved. The previously saved draft, if any, will remain unchanged.") }
             .onAppear {
                 guard !initialized else { return }; initialized = true
                 if let id = editingID, let request = store.snapshot.requests.first(where: { $0.id == id }) {
                     service = request.service; title = request.title; details = request.details; state = request.state; date = request.incidentDate
                 }
+                originalValues = currentValues
             }
             .appError($error)
             .alert("Draft saved", isPresented: $saved) { Button("Done") { dismiss() } } message: { Text("Saved on this device only. Nothing has been sent or booked.") }
     }
     private func save() {
-        do { try store.saveRequest(service: service, title: title, details: details, state: state, date: date, editingID: editingID); saved = true }
+        do { try store.saveRequest(service: service, title: title, details: details, state: state, date: date, editingID: editingID); JFTATheme.dismissKeyboard(); saved = true }
         catch { self.error = error.localizedDescription }
     }
 }

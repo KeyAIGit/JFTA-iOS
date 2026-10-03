@@ -36,7 +36,7 @@ common={'SWIFT_VERSION':'5.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVI
 for name, sources, producttype, ext in [('JFTA',app_build,'application','app'),('JFTAUnitTests',unit_build,'bundle.unit-test','xctest'),('JFTAUITests',ui_build,'bundle.ui-testing','xctest')]:
     product=obj('product:'+name,'PBXFileReference',explicitFileType='wrapper.application' if ext=='app' else 'wrapper.cfbundle',includeInIndex=0,path=name+'.'+ext,sourceTree='BUILT_PRODUCTS_DIR');products.append(product)
     settings=dict(common);deps=[]
-    if name=='JFTA': settings.update(PRODUCT_BUNDLE_IDENTIFIER='org.jftateam.memberapp',GENERATE_INFOPLIST_FILE='NO',INFOPLIST_FILE='JFTA/Info.plist',ASSETCATALOG_COMPILER_APPICON_NAME='AppIcon',CURRENT_PROJECT_VERSION='4',MARKETING_VERSION='0.2.1')
+    if name=='JFTA': settings.update(PRODUCT_BUNDLE_IDENTIFIER='org.jftateam.memberapp',GENERATE_INFOPLIST_FILE='NO',INFOPLIST_FILE='JFTA/Info.plist',ASSETCATALOG_COMPILER_APPICON_NAME='AppIcon',CURRENT_PROJECT_VERSION='5',MARKETING_VERSION='0.2.2')
     else:
         settings.update(PRODUCT_BUNDLE_IDENTIFIER='org.jftateam.memberapp.'+name,GENERATE_INFOPLIST_FILE='YES')
         if name=='JFTAUnitTests': settings.update(TEST_HOST='$(BUILT_PRODUCTS_DIR)/JFTA.app/JFTA',BUNDLE_LOADER='$(TEST_HOST)')

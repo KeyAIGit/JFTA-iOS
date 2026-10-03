@@ -82,3 +82,70 @@ extension CoreTests {
     func testReplyIsTrimmedAndPersists() throws { var s = AppSnapshot(); s.profile.name = "Test Driver"; s.posts = [.init(title: "Test post", body: "Local sample body", author: "Test Driver")]; try s.appendReply(postID: s.posts[0].id, text: "  Local reply  "); try disk.save(s); XCTAssertEqual(try disk.load().posts[0].replies[0].text, "Local reply") }
     func testActivityListIsBounded() throws { var s = AppSnapshot(); s.notices = (0..<100).map { .init(title: "Notice \($0)", detail: "Sample") }; _ = try s.storeRequest(service: .general, title: "New draft", details: "Local sample details.", state: "", date: Date()); XCTAssertEqual(s.notices.count, 100); XCTAssertEqual(s.notices.first?.title, "Draft saved") }
 }
+
+
+extension CoreTests {
+    func testSnapshotSaveRefusesSymbolicTargetAndPreservesOriginal() throws {
+        let data = try JSONEncoder().encode(AppSnapshot())
+        let target = try source("protected.json", bytes: data)
+        try FileManager.default.createDirectory(at: disk.file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: disk.file, withDestinationURL: target)
+        XCTAssertThrowsError(try disk.save(AppSnapshot()))
+        XCTAssertEqual(try Data(contentsOf: target), data)
+        XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: disk.file.path)[.type] as? FileAttributeType, .typeSymbolicLink)
+    }
+    func testDanglingSnapshotLinkDoesNotBecomeEmptyState() throws {
+        try FileManager.default.createDirectory(at: disk.file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: disk.file, withDestinationURL: temp.appendingPathComponent("absent.json"))
+        XCTAssertThrowsError(try disk.load())
+        XCTAssertThrowsError(try disk.save(AppSnapshot()))
+    }
+    func testSnapshotRefusesSymlinkedParent() throws {
+        let target = temp.appendingPathComponent("other-state")
+        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: disk.file.deletingLastPathComponent(), withDestinationURL: target)
+        XCTAssertThrowsError(try disk.load())
+        XCTAssertThrowsError(try disk.save(AppSnapshot()))
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: target.path).isEmpty)
+    }
+    func testVaultRefusesSymlinkedRootWithoutWritingToTarget() throws {
+        let target = temp.appendingPathComponent("other-vault")
+        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: vault.directory, withDestinationURL: target)
+        XCTAssertThrowsError(try vault.list())
+        let src = try source()
+        XCTAssertThrowsError(try vault.importFile(from: src))
+        XCTAssertTrue(try FileManager.default.contentsOfDirectory(atPath: target.path).isEmpty)
+    }
+    func testVaultDeletionRefusesDirectoryAndPreservesContents() throws {
+        let folder = vault.directory.appendingPathComponent(UUID().uuidString + "_folder.txt")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let child = folder.appendingPathComponent("keep.txt")
+        try Data("keep".utf8).write(to: child)
+        XCTAssertThrowsError(try vault.delete(.init(url: folder)))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: child.path))
+    }
+    func testVaultDeletionRefusesLinkToAnotherOwnedFile() throws {
+        let src = try source()
+        let original = try vault.importFile(from: src)
+        let link = vault.directory.appendingPathComponent(UUID().uuidString + "_alias.txt")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: original.url)
+        XCTAssertThrowsError(try vault.delete(.init(url: link)))
+        XCTAssertEqual(try Data(contentsOf: original.url), try Data(contentsOf: src))
+    }
+    func testDocumentLimitRejectsInvalidConfigurationWithoutOverflow() throws {
+        let src = try source()
+        for limit in [0, -1, Int.max] {
+            let invalid = LocalDocumentStore(directory: vault.directory, maximumBytes: limit)
+            XCTAssertThrowsError(try invalid.importFile(from: src))
+        }
+        XCTAssertTrue(try vault.list().isEmpty)
+    }
+    func testOversizedOnDiskSnapshotIsPreserved() throws {
+        try FileManager.default.createDirectory(at: disk.file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let data = Data(repeating: 65, count: SnapshotStore.maximumBytes + 1)
+        try data.write(to: disk.file)
+        XCTAssertThrowsError(try disk.load())
+        XCTAssertEqual(try Data(contentsOf: disk.file), data)
+    }
+}

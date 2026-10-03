@@ -26,6 +26,8 @@ struct LocalDocumentStore: Sendable {
     }
 
     func importFile(from source: URL) throws -> LocalDocument {
+        guard maximumBytes > 0, maximumBytes < Int.max else { throw StoreError.invalidConfiguration }
+        _ = try directoryExists()
         guard source.isFileURL,
               Self.allowedExtensions.contains(source.pathExtension.lowercased()) else {
             throw StoreError.unsupportedType
@@ -69,7 +71,7 @@ struct LocalDocumentStore: Sendable {
     }
 
     func list() throws -> [LocalDocument] {
-        guard FileManager.default.fileExists(atPath: directory.path) else { return [] }
+        guard try directoryExists() else { return [] }
         return try FileManager.default.contentsOfDirectory(at: directory,
             includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey],
             options: [.skipsHiddenFiles]).compactMap { url in
@@ -83,12 +85,24 @@ struct LocalDocumentStore: Sendable {
     }
 
     func delete(_ document: LocalDocument) throws {
-        guard isOwnedURL(document.url) else { throw StoreError.outsideStore }
+        guard try directoryExists(), isOwnedURL(document.url) else { throw StoreError.outsideStore }
+        let attributes = try FileManager.default.attributesOfItem(atPath: document.url.path)
+        guard attributes[.type] as? FileAttributeType == .typeRegular else { throw StoreError.notRegularFile }
         try FileManager.default.removeItem(at: document.url)
     }
 
+    private func directoryExists() throws -> Bool {
+        guard directory.isFileURL else { throw StoreError.outsideStore }
+        do {
+            let attributes = try FileManager.default.attributesOfItem(atPath: directory.path)
+            guard attributes[.type] as? FileAttributeType == .typeDirectory else { throw StoreError.unsafeDirectory }
+            return true
+        } catch let error as CocoaError where error.code == .fileNoSuchFile || error.code == .fileReadNoSuchFile { return false }
+    }
     private func prepareDirectory() throws {
+        _ = try directoryExists()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        _ = try directoryExists()
         #if os(iOS)
         // Sample documents in this beta should not be included in an iCloud backup.
         var folder = directory
@@ -108,9 +122,11 @@ struct LocalDocumentStore: Sendable {
     }
 
     enum StoreError: LocalizedError {
-        case storageUnavailable, unsupportedType, notRegularFile, tooLarge, emptyFile, outsideStore, capacity
+        case storageUnavailable, unsupportedType, notRegularFile, tooLarge, emptyFile, outsideStore, capacity, unsafeDirectory, invalidConfiguration
         var errorDescription: String? {
             switch self {
+            case .unsafeDirectory: return "The local vault path is not a regular directory. No files were changed."
+            case .invalidConfiguration: return "The local vault's import limit is invalid. Nothing was saved."
             case .capacity: return "The local vault limit is 100 files or 200 MiB."
             case .storageUnavailable: return "The local Documents directory is unavailable."
             case .unsupportedType: return "Choose a PDF, PNG, JPEG, HEIC, HEIF, or plain text file."

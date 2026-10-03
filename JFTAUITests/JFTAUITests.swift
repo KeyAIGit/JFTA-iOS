@@ -23,13 +23,17 @@ final class JFTAUITests: XCTestCase {
     private func tab(_ title: String) {
         let button = app.tabBars.buttons[title]; XCTAssertTrue(button.waitForExistence(timeout: 8)); button.tap()
     }
+    private func dismissSystemTypingHint() {
+        let tip = app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] %@", "Speed up your typing")).firstMatch
+        if tip.waitForExistence(timeout: 0.5) && app.buttons["Continue"].exists { app.buttons["Continue"].tap() }
+    }
     private func shot(_ name: String) {
+        dismissSystemTypingHint()
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     private func type(_ id: String, _ text: String) {
         let e = element(id); XCTAssertTrue(e.waitForExistence(timeout: 8)); e.tap()
-        let tip = app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] %@", "Speed up your typing")).firstMatch
-        if tip.exists && app.buttons["Continue"].exists { app.buttons["Continue"].tap(); e.tap() }
+        dismissSystemTypingHint()
         e.typeText(text)
     }
     private func back() { let button = app.navigationBars.buttons.element(boundBy: 0); XCTAssertTrue(button.waitForExistence(timeout: 5)); button.tap() }
@@ -61,7 +65,9 @@ final class JFTAUITests: XCTestCase {
     func testProfileEditSurvivesRestart() {
         launch(); tab("More"); tap("more.profile"); type("profile.name", " UI")
         let expected = element("profile.name").value as? String
-        tap("profile.save"); XCTAssertTrue(app.alerts["Profile saved"].waitForExistence(timeout: 3)); app.alerts.buttons["OK"].tap(); shot("25-profile")
+        tap("profile.save"); XCTAssertTrue(app.alerts["Profile saved"].waitForExistence(timeout: 3)); app.alerts.buttons["OK"].tap()
+        expectation(for: NSPredicate(format: "count == 0"), evaluatedWith: app.keyboards); waitForExpectations(timeout: 5)
+        shot("25-profile")
         app.terminate(); launch(reset: false); tab("More"); tap("more.profile"); XCTAssertEqual(element("profile.name").value as? String, expected)
     }
     func testLocalDocumentImportPersists() {
@@ -118,5 +124,32 @@ final class JFTAUITests: XCTestCase {
         tap("keyboard.done"); expectation(for: NSPredicate(format: "count == 0"), evaluatedWith: app.keyboards); waitForExpectations(timeout: 5)
         tap("profile.save"); XCTAssertTrue(app.alerts["Could not complete action"].waitForExistence(timeout: 5)); app.alerts.buttons["OK"].tap(); shot("profile-validation")
         app.terminate(); launch(reset: false); tab("More"); tap("more.profile"); XCTAssertNotEqual(element("profile.email").value as? String, "invalid")
+    }
+
+
+    func testUnsavedDraftCanKeepEditingThenDiscard() {
+        launch(); tab("Cases"); tap("cases.startRequest")
+        type("request.title", "Unsaved road note")
+        type("request.details", "This non-sensitive draft should not be lost by accident.")
+        tap("request.back")
+        XCTAssertTrue(app.buttons["Keep editing"].waitForExistence(timeout: 5)); shot("request-unsaved-warning")
+        app.buttons["Keep editing"].tap()
+        XCTAssertEqual(element("request.title").value as? String, "Unsaved road note")
+        tap("request.back"); app.buttons["Discard changes"].tap()
+        XCTAssertTrue(element("cases.startRequest").waitForExistence(timeout: 5))
+        XCTAssertFalse(element("case.Unsaved road note").exists)
+    }
+    func testDiscardedEditPreservesPreviouslySavedDraft() {
+        launch(); tab("Cases"); tap("cases.startRequest")
+        type("request.title", "Preserved road note")
+        type("request.details", "This saved sample remains unchanged after discarding an edit.")
+        tap("request.save")
+        XCTAssertTrue(app.alerts["Draft saved"].waitForExistence(timeout: 5)); app.alerts.buttons["Done"].tap()
+        tap("case.Preserved road note"); tap("caseDetail.edit")
+        type("request.title", " changed"); tap("request.back")
+        XCTAssertTrue(app.buttons["Discard changes"].waitForExistence(timeout: 5)); app.buttons["Discard changes"].tap()
+        XCTAssertEqual(element("caseDetail.title").label, "Preserved road note")
+        app.terminate(); launch(reset: false); tab("Cases"); tap("case.Preserved road note")
+        XCTAssertEqual(element("caseDetail.title").label, "Preserved road note"); shot("request-preserved-after-discard")
     }
 }
