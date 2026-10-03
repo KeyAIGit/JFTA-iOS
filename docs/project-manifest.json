@@ -3,6 +3,7 @@
     "Core/LocalDocumentStore.swift",
     "Core/Models.swift",
     "Core/SnapshotStore.swift",
+    "JFTA/AccountSync.swift",
     "JFTA/AppStore.swift",
     "JFTA/BenefitsAndResources.swift",
     "JFTA/Cases.swift",
@@ -11,6 +12,7 @@
     "JFTA/HomeAndAccess.swift",
     "JFTA/JFTAApp.swift",
     "JFTA/ProfileAndMore.swift",
+    "JFTA/RemoteBackend.swift",
     "JFTA/Theme.swift"
   ],
   "unit_sources": [

@@ -10,6 +10,10 @@ def obj(key, isa, **kwargs):
 def file(path, typ): return obj('file:'+path,'PBXFileReference',lastKnownFileType=typ,path=path,sourceTree='SOURCE_ROOT')
 def build_file(path, typ):
     r=file(path,typ); return r,obj('build:'+path,'PBXBuildFile',fileRef=r)
+def remote_package(url, requirement):
+    return obj('package:'+url,'XCRemoteSwiftPackageReference',repositoryURL=url,requirement=requirement)
+def package_product(package, name):
+    return obj('packageproduct:'+name,'XCSwiftPackageProductDependency',package=package,productName=name)
 def configs(key, settings):
     arr=[]
     for mode in ['Debug','Release']:
@@ -31,26 +35,29 @@ for paths,refs,builds in [(unit_sources,unit_refs,unit_build),(ui_sources,ui_ref
     for p in paths:
         r,b=build_file(p,'sourcecode.swift');refs.append(r);builds.append(b)
 project_id=uid('project');app_id=uid('target:JFTA')
+supabase_package=remote_package('https://github.com/supabase/supabase-swift',{'kind':'exactVersion','version':'2.55.3'})
+supabase_product=package_product(supabase_package,'Supabase')
+supabase_build=obj('build:package:Supabase','PBXBuildFile',productRef=supabase_product)
 products=[];targets=[]
 common={'SWIFT_VERSION':'5.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1','CODE_SIGN_STYLE':'Automatic','DEVELOPMENT_TEAM':'','SUPPORTED_PLATFORMS':'iphoneos iphonesimulator','PRODUCT_NAME':'$(TARGET_NAME)','SWIFT_EMIT_LOC_STRINGS':'YES'}
 for name, sources, producttype, ext in [('JFTA',app_build,'application','app'),('JFTAUnitTests',unit_build,'bundle.unit-test','xctest'),('JFTAUITests',ui_build,'bundle.ui-testing','xctest')]:
     product=obj('product:'+name,'PBXFileReference',explicitFileType='wrapper.application' if ext=='app' else 'wrapper.cfbundle',includeInIndex=0,path=name+'.'+ext,sourceTree='BUILT_PRODUCTS_DIR');products.append(product)
     settings=dict(common);deps=[]
-    if name=='JFTA': settings.update(PRODUCT_BUNDLE_IDENTIFIER='org.jftateam.memberapp',GENERATE_INFOPLIST_FILE='NO',INFOPLIST_FILE='JFTA/Info.plist',ASSETCATALOG_COMPILER_APPICON_NAME='AppIcon',CURRENT_PROJECT_VERSION='6',MARKETING_VERSION='0.2.3')
+    if name=='JFTA': settings.update(PRODUCT_BUNDLE_IDENTIFIER='org.jftateam.memberapp',GENERATE_INFOPLIST_FILE='NO',INFOPLIST_FILE='JFTA/Info.plist',ASSETCATALOG_COMPILER_APPICON_NAME='AppIcon',CURRENT_PROJECT_VERSION='7',MARKETING_VERSION='0.3.0')
     else:
         settings.update(PRODUCT_BUNDLE_IDENTIFIER='org.jftateam.memberapp.'+name,GENERATE_INFOPLIST_FILE='YES')
         if name=='JFTAUnitTests': settings.update(TEST_HOST='$(BUILT_PRODUCTS_DIR)/JFTA.app/JFTA',BUNDLE_LOADER='$(TEST_HOST)')
         else: settings['TEST_TARGET_NAME']='JFTA'
         proxy=obj('proxy:'+name,'PBXContainerItemProxy',containerPortal=project_id,proxyType=1,remoteGlobalIDString=app_id,remoteInfo='JFTA')
         deps=[obj('dependency:'+name,'PBXTargetDependency',target=app_id,targetProxy=proxy)]
-    phases=[obj(name+'sources','PBXSourcesBuildPhase',buildActionMask=2147483647,files=sources,runOnlyForDeploymentPostprocessing=0),obj(name+'frameworks','PBXFrameworksBuildPhase',buildActionMask=2147483647,files=[],runOnlyForDeploymentPostprocessing=0),obj(name+'resources','PBXResourcesBuildPhase',buildActionMask=2147483647,files=[assetbuild,privacybuild] if name=='JFTA' else [],runOnlyForDeploymentPostprocessing=0)]
-    targets.append(obj('target:'+name,'PBXNativeTarget',buildConfigurationList=configs(name,settings),buildPhases=phases,buildRules=[],dependencies=deps,name=name,productName=name,productReference=product,productType='com.apple.product-type.'+producttype))
+    phases=[obj(name+'sources','PBXSourcesBuildPhase',buildActionMask=2147483647,files=sources,runOnlyForDeploymentPostprocessing=0),obj(name+'frameworks','PBXFrameworksBuildPhase',buildActionMask=2147483647,files=[supabase_build] if name=='JFTA' else [],runOnlyForDeploymentPostprocessing=0),obj(name+'resources','PBXResourcesBuildPhase',buildActionMask=2147483647,files=[assetbuild,privacybuild] if name=='JFTA' else [],runOnlyForDeploymentPostprocessing=0)]
+    targets.append(obj('target:'+name,'PBXNativeTarget',buildConfigurationList=configs(name,settings),buildPhases=phases,buildRules=[],dependencies=deps,name=name,packageProductDependencies=[supabase_product] if name=='JFTA' else [],productName=name,productReference=product,productType='com.apple.product-type.'+producttype))
 appgroup=obj('appgroup','PBXGroup',children=app_refs,name='Application and Core',sourceTree='<group>')
 testgroup=obj('testgroup','PBXGroup',children=unit_refs+ui_refs,name='Tests',sourceTree='<group>')
 productgroup=obj('productgroup','PBXGroup',children=products,name='Products',sourceTree='<group>')
 rootgroup=obj('rootgroup','PBXGroup',children=[appgroup,testgroup,productgroup],sourceTree='<group>')
 project_settings={'ALWAYS_SEARCH_USER_PATHS':'NO','CLANG_ENABLE_MODULES':'YES','CLANG_ENABLE_OBJC_ARC':'YES','SDKROOT':'iphoneos','IPHONEOS_DEPLOYMENT_TARGET':'17.0'}
-obj('project','PBXProject',attributes={'BuildIndependentTargetsInParallel':'YES','LastUpgradeCheck':'2660','TargetAttributes':{uid('target:JFTA'):{'CreatedOnToolsVersion':'26.6'},uid('target:JFTAUnitTests'):{'CreatedOnToolsVersion':'26.6','TestTargetID':app_id},uid('target:JFTAUITests'):{'CreatedOnToolsVersion':'26.6','TestTargetID':app_id}}},buildConfigurationList=configs('project',project_settings),compatibilityVersion='Xcode 15.0',developmentRegion='en',hasScannedForEncodings=0,knownRegions=['en','Base'],mainGroup=rootgroup,productRefGroup=productgroup,projectDirPath='',projectRoot='',targets=targets)
+obj('project','PBXProject',attributes={'BuildIndependentTargetsInParallel':'YES','LastUpgradeCheck':'2660','TargetAttributes':{uid('target:JFTA'):{'CreatedOnToolsVersion':'26.6'},uid('target:JFTAUnitTests'):{'CreatedOnToolsVersion':'26.6','TestTargetID':app_id},uid('target:JFTAUITests'):{'CreatedOnToolsVersion':'26.6','TestTargetID':app_id}}},buildConfigurationList=configs('project',project_settings),compatibilityVersion='Xcode 15.0',developmentRegion='en',hasScannedForEncodings=0,knownRegions=['en','Base'],mainGroup=rootgroup,productRefGroup=productgroup,projectDirPath='',projectRoot='',packageReferences=[supabase_package],targets=targets)
 def dump(x,level=0):
     pad='\t'*level
     if isinstance(x,dict): return '{\n'+''.join('\t'*(level+1)+json.dumps(str(k))+ ' = '+dump(v,level+1)+';\n' for k,v in x.items())+pad+'}'
