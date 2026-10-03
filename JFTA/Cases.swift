@@ -84,14 +84,15 @@ struct RequestFormView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button { if hasUnsavedChanges { confirmDiscard = true } else { dismiss() } } label: { Label("Back", systemImage: "chevron.left") }
+                    Button { JFTATheme.dismissKeyboard(); if hasUnsavedChanges { confirmDiscard = true } else { dismiss() } } label: { Label("Back", systemImage: "chevron.left") }
                         .accessibilityIdentifier("request.back")
                 }
                 ToolbarItem(placement: .confirmationAction) { Button("Save") { save() }.fontWeight(.bold).accessibilityIdentifier("request.save") }
             }
             .confirmationDialog("Discard unsaved changes?", isPresented: $confirmDiscard, titleVisibility: .visible) {
-                Button("Keep editing", role: .cancel) {}.accessibilityIdentifier("request.keepEditing")
-                Button("Discard changes", role: .destructive) { dismiss() }.accessibilityIdentifier("request.discard")
+                // A cancel-role action is hidden in the iOS popover presentation. Keep this explicit choice visible.
+                Button("Keep editing") { confirmDiscard = false }.accessibilityIdentifier("request.keepEditing")
+                Button("Discard changes", role: .destructive) { confirmDiscard = false; dismiss() }.accessibilityIdentifier("request.discard")
             } message: { Text("Your changes have not been saved. The previously saved draft, if any, will remain unchanged.") }
             .onAppear {
                 guard !initialized else { return }; initialized = true
