@@ -26,6 +26,7 @@ jobs:
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       JFTA_TEST_SHARD: ${{ matrix.shard }}
+      JFTA_SIMULATOR_KIND: ${{ matrix.shard == 2 && 'compact' || 'standard' }}
     steps:
       - name: Check out source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262

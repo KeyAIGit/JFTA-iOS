@@ -149,3 +149,65 @@ extension CoreTests {
         XCTAssertEqual(try Data(contentsOf: disk.file), data)
     }
 }
+
+
+extension CoreTests {
+    func testPostCreateTrimsFields() throws {
+        var s = AppSnapshot(); s.profile.name = "Driver"
+        let id = try s.storePost(title: "  New discussion  ", body: "  Non-sensitive discussion body.  ")
+        XCTAssertEqual(s.posts.first?.id, id); XCTAssertEqual(s.posts.first?.title, "New discussion")
+        XCTAssertEqual(s.posts.first?.body, "Non-sensitive discussion body."); XCTAssertEqual(s.posts.first?.author, "Driver")
+    }
+    func testPostEditPreservesRepliesDateAndIdentity() throws {
+        var s = AppSnapshot(); let id = try s.storePost(title: "Original post", body: "Original non-sensitive body.")
+        try s.appendReply(postID: id, text: "Keep this reply")
+        let before = s.posts[0]
+        XCTAssertEqual(try s.storePost(title: "Updated post", body: "Updated non-sensitive body.", editingID: id), id)
+        XCTAssertEqual(s.posts.count, 1); XCTAssertEqual(s.posts[0].replies, before.replies)
+        XCTAssertEqual(s.posts[0].createdAt, before.createdAt); XCTAssertEqual(s.posts[0].author, before.author)
+        try disk.save(s); XCTAssertEqual(try disk.load(), s)
+    }
+    func testMissingPostEditDoesNotCreateRecord() {
+        var s = AppSnapshot(); let before = s
+        XCTAssertThrowsError(try s.storePost(title: "Updated post", body: "Updated local body.", editingID: UUID()))
+        XCTAssertEqual(s, before)
+    }
+    func testInvalidPostEditDoesNotMutate() throws {
+        var s = AppSnapshot(); let id = try s.storePost(title: "Original post", body: "Original local body."); let before = s
+        XCTAssertThrowsError(try s.storePost(title: "x", body: "too short", editingID: id)); XCTAssertEqual(s, before)
+    }
+    func testPostCapacityDoesNotPreventExistingEdit() throws {
+        var s = AppSnapshot()
+        for i in 0..<200 { _ = try s.storePost(title: "Sample post \(i)", body: "Non-sensitive discussion sample.") }
+        XCTAssertThrowsError(try s.storePost(title: "Over capacity", body: "Non-sensitive discussion sample."))
+        XCTAssertNoThrow(try s.storePost(title: "Still editable", body: "Non-sensitive discussion sample.", editingID: s.posts[0].id))
+        XCTAssertEqual(s.posts.count, 200)
+    }
+    func testPostDeletePersistsAndKeepsOtherData() throws {
+        var s = AppSnapshot(); s.profile.name = "Driver"; s.savedOfferIDs = ["fuel"]
+        let id = try s.storePost(title: "Delete this", body: "Local non-sensitive content.")
+        let kept = try s.storePost(title: "Keep this", body: "Local non-sensitive content.")
+        try s.deletePost(id); try disk.save(s)
+        XCTAssertEqual(try disk.load().posts.map(\.id), [kept]); XCTAssertEqual(try disk.load().savedOfferIDs, ["fuel"])
+    }
+    func testDeletingMissingPostPreservesState() throws {
+        var s = AppSnapshot(); _ = try s.storePost(title: "Keep this", body: "Local non-sensitive content."); let before = s
+        XCTAssertThrowsError(try s.deletePost(UUID())); XCTAssertEqual(s, before)
+    }
+    func testRemovingDocumentReferenceUpdatesEveryDraftOnce() throws {
+        var s = AppSnapshot()
+        for i in 0..<3 {
+            let id = try s.storeRequest(service: .general, title: "Draft \(i)", details: "Non-sensitive request.", state: "CA", date: Date())
+            try s.setDocuments(["removed", "kept"], requestID: id)
+        }
+        s.removeDocumentReferences("removed"); try disk.save(s)
+        XCTAssertTrue(try disk.load().requests.allSatisfy { $0.documentIDs == ["kept"] })
+        let before = s; s.removeDocumentReferences("missing"); XCTAssertEqual(s, before)
+    }
+    func testDraftExportIncludesLocationAndAttachmentWarning() {
+        var draft = ServiceRequest(service: .legal, title: "Sample title", details: "Sample details.", state: "CA", incidentDate: Date())
+        draft.documentIDs = ["local-only"]
+        XCTAssertTrue(draft.exportText.contains("Location: CA")); XCTAssertTrue(draft.exportText.contains("not submitted"))
+        XCTAssertTrue(draft.exportText.contains("references: 1")); XCTAssertTrue(draft.exportText.contains("Files are not included"))
+    }
+}

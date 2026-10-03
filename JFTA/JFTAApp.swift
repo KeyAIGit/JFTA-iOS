@@ -14,7 +14,7 @@ enum Route: Hashable {
     case resetAccess, memberPass, request(ServiceKind), caseDetail(UUID), editRequest(UUID), caseDocuments(UUID)
     case service(ServiceKind), consultation(ServiceKind), offer(String), resources, article(String)
     case community, thread(UUID), composePost, marketplace, listing(String), notifications, documents
-    case profile, membership, referral, help
+    case profile, membership, referral, help, drafts, savedOffers, editPost(UUID)
 }
 struct RootView: View {
     @EnvironmentObject private var store: AppStore
@@ -70,6 +70,9 @@ struct DestinationView: View {
             case .community: CommunityView()
             case .thread(let id): ThreadView(id: id)
             case .composePost: ComposePostView()
+            case .editPost(let id): ComposePostView(editingID: id)
+            case .drafts: CasesView()
+            case .savedOffers: BenefitsView(savedOnly: true)
             case .marketplace: MarketplaceView()
             case .listing(let id): ListingView(id: id)
             case .notifications: NotificationsView()

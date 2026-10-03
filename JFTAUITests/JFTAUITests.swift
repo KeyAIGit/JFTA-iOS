@@ -3,10 +3,11 @@ import XCTest
 final class JFTAUITests: XCTestCase {
     let app = XCUIApplication()
     override func setUpWithError() throws { continueAfterFailure = false; executionTimeAllowance = 300 }
-    private func launch(reset: Bool = true, welcome: Bool = false) {
+    private func launch(reset: Bool = true, welcome: Bool = false, largeText: Bool = false) {
         app.launchArguments = ["--uitesting", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if reset { app.launchArguments.append("--reset") }
         if welcome { app.launchArguments.append("--welcome") }
+        if largeText { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
         app.launch()
     }
     private func element(_ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
@@ -167,5 +168,85 @@ final class JFTAUITests: XCTestCase {
         XCTAssertEqual(element("caseDetail.title").label, "Preserved road note")
         app.terminate(); launch(reset: false); tab("Cases"); tap("case.Preserved road note")
         XCTAssertEqual(element("caseDetail.title").label, "Preserved road note"); shot("request-preserved-after-discard")
+    }
+}
+
+
+extension JFTAUITests {
+    private func createDraft(_ title: String) {
+        tab("Cases"); tap("cases.startRequest"); type("request.title", title)
+        type("request.details", "Non-sensitive sample request for checking local interactions.")
+        tap("request.save"); XCTAssertTrue(app.alerts["Draft saved"].waitForExistence(timeout: 5)); app.alerts.buttons["Done"].tap()
+        tap("case." + title)
+    }
+    func testHomeWorkspaceCardsOpenRealDestinations() {
+        launch(); tap("home.drafts"); XCTAssertTrue(element("cases.startRequest").waitForExistence(timeout: 5)); back()
+        tap("home.savedOffers"); XCTAssertTrue(app.switches["benefits.savedOnly"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.switches["benefits.savedOnly"].value as? String, "1"); shot("home-saved-offers"); back()
+        tap("home.documents"); XCTAssertTrue(element("documents.import").waitForExistence(timeout: 5))
+    }
+    func testProfileUnsavedChangesCanBeKeptOrDiscarded() {
+        launch(); tab("More"); tap("more.profile"); type("profile.name", " changed"); tap("profile.back")
+        tap("profile.keepEditing"); XCTAssertEqual(element("profile.name").value as? String, "Test Driver changed")
+        tap("profile.back"); tap("profile.discard"); tap("more.profile")
+        XCTAssertEqual(element("profile.name").value as? String, "Test Driver"); shot("profile-retained")
+    }
+    func testDiscussionCanBeEditedAndDeletedWithoutLosingReplies() {
+        launch(); tab("More"); tap("more.community"); tap("community.compose")
+        type("post.title", "Editable discussion"); type("post.body", "This is a non-sensitive discussion draft."); tap("post.save")
+        tap("post.Editable discussion"); type("thread.reply", "Keep this reply"); tap("thread.saveReply")
+        tap("thread.edit"); type("post.title", " updated"); tap("post.save")
+        XCTAssertEqual(element("thread.title").label, "Editable discussion updated")
+        XCTAssertTrue(app.staticTexts["Keep this reply"].exists); shot("discussion-edited")
+        tap("thread.delete"); tap("thread.confirmDelete"); XCTAssertTrue(element("community.compose").waitForExistence(timeout: 5))
+        app.terminate(); launch(reset: false); tab("More"); tap("more.community"); XCTAssertFalse(element("post.Editable discussion updated").exists)
+    }
+    func testPostComposerProtectsUnsavedText() {
+        launch(); tab("More"); tap("more.community"); tap("community.compose")
+        type("post.title", "Unsaved discussion"); tap("post.back"); tap("post.keepEditing")
+        XCTAssertEqual(element("post.title").value as? String, "Unsaved discussion")
+        tap("post.back"); tap("post.discard"); XCTAssertTrue(element("community.compose").waitForExistence(timeout: 5))
+        XCTAssertFalse(element("post.Unsaved discussion").exists)
+    }
+    func testDraftAttachmentsToggleAndDeleteWithoutOpeningPreview() {
+        launch(); createDraft("Attachment check"); tap("caseDetail.documents"); tap("documents.testSample")
+        let attachment = element("document.attachment"); XCTAssertTrue(attachment.waitForExistence(timeout: 8))
+        XCTAssertEqual(attachment.value as? String, "Attached")
+        tap("document.attachment"); XCTAssertEqual(attachment.value as? String, "Not attached")
+        XCTAssertFalse(element("document.preview.close").exists)
+        tap("document.attachment"); XCTAssertEqual(attachment.value as? String, "Attached"); shot("draft-file-attached")
+        tap("document.actions"); tap("document.delete"); tap("documents.confirmDelete")
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: element("document.preview")); waitForExpectations(timeout: 8)
+        back(); XCTAssertTrue(element("caseDetail.documents").label.contains("0 local reference"))
+        app.terminate(); launch(reset: false); tab("Cases"); tap("case.Attachment check")
+        XCTAssertTrue(element("caseDetail.documents").label.contains("0 local reference"))
+    }
+    func testDraftDeleteFromDetailKeepsLocalDocuments() {
+        launch(); createDraft("Delete draft only"); tap("caseDetail.documents"); tap("documents.testSample")
+        XCTAssertTrue(element("document.preview").waitForExistence(timeout: 8)); back(); tap("caseDetail.delete"); tap("caseDetail.confirmDelete")
+        XCTAssertTrue(element("cases.startRequest").waitForExistence(timeout: 5)); XCTAssertFalse(element("case.Delete draft only").exists)
+        tab("More"); tap("more.documents"); XCTAssertTrue(element("document.preview").waitForExistence(timeout: 8)); shot("files-retained-after-draft-delete")
+    }
+    func testSystemFilesPickerOpensAndCancelsWithoutFalseImport() {
+        launch(); tab("More"); tap("more.documents"); tap("documents.import")
+        let cancel = app.buttons["Cancel"].firstMatch; XCTAssertTrue(cancel.waitForExistence(timeout: 10)); shot("system-files-picker")
+        cancel.tap(); XCTAssertTrue(element("documents.import").waitForExistence(timeout: 5))
+        XCTAssertFalse(element("document.preview").exists); XCTAssertFalse(app.alerts["Could not complete action"].exists)
+    }
+    func testMembershipPreferenceRemainsAfterRelaunch() {
+        launch(); tab("More"); tap("more.membership")
+        let standard = app.segmentedControls.buttons["Standard"]; XCTAssertTrue(standard.waitForExistence(timeout: 5)); standard.tap()
+        tap("membership.save"); XCTAssertTrue(app.alerts["Preference saved"].waitForExistence(timeout: 5)); app.alerts.buttons["OK"].tap()
+        app.terminate(); launch(reset: false); tab("More"); tap("more.membership")
+        XCTAssertTrue(app.segmentedControls.buttons["Standard"].isSelected); shot("membership-preference")
+    }
+    func testLargeTextServicesAndPassRemainReachable() {
+        launch(largeText: true); shot("large-text-home")
+        tap("home.service.Benefits"); XCTAssertTrue(element("service.start").waitForExistence(timeout: 5)); shot("large-text-service"); back()
+        tap("home.memberPass"); XCTAssertTrue(element("pass.name").waitForExistence(timeout: 5)); shot("large-text-member-pass")
+    }
+    func testExistingAccountHelpHasWorkingBackNavigation() {
+        launch(welcome: true); tap("welcome.access"); XCTAssertTrue(app.navigationBars["Reset access"].waitForExistence(timeout: 5))
+        shot("02-account-access"); back(); XCTAssertTrue(element("welcome.name").waitForExistence(timeout: 5))
     }
 }

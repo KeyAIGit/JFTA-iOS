@@ -25,6 +25,10 @@ struct CommunityView: View {
 struct ComposePostView: View {
     @EnvironmentObject private var store: AppStore
     @Environment(\.dismiss) private var dismiss
+    var editingID: UUID? = nil
+    @State private var loaded = false
+    @State private var originalTitle = ""
+    @State private var originalText = ""
     @State private var title = ""
     @State private var text = ""
     @State private var error: String?
@@ -35,31 +39,46 @@ struct ComposePostView: View {
                 TextField("Title", text: $title).accessibilityIdentifier("post.title")
                 TextEditor(text: $text).frame(minHeight: 200).accessibilityLabel("Post body").accessibilityIdentifier("post.body")
             }
-        }.appForm().navigationTitle("Write a post")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Save") { do { try store.createPost(title: title, body: text); dismiss() } catch { self.error = error.localizedDescription } }.accessibilityIdentifier("post.save") } }.appError($error)
+        }.appForm().navigationTitle(editingID == nil ? "Write a post" : "Edit post")
+            .guardUnsavedChanges(title != originalTitle || text != originalText, identifier: "post")
+            .onAppear {
+                guard !loaded else { return }; loaded = true
+                if let id = editingID, let post = store.snapshot.posts.first(where: { $0.id == id }) { title = post.title; text = post.body }
+                originalTitle = title; originalText = text
+            }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Save") { do { try store.createPost(title: title, body: text, editingID: editingID); JFTATheme.dismissKeyboard(); dismiss() } catch { self.error = error.localizedDescription } }.accessibilityIdentifier("post.save") } }.appError($error)
     }
 }
 struct ThreadView: View {
     @EnvironmentObject private var store: AppStore
     let id: UUID
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmDelete = false
     @State private var reply = ""
     @State private var error: String?
     var body: some View {
         Page {
             if let post = store.snapshot.posts.first(where: { $0.id == id }) {
                 SectionLabel(text: "Local discussion")
-                Text(post.title).font(.largeTitle.bold())
+                Text(post.title).font(.largeTitle.bold()).accessibilityIdentifier("thread.title")
                 Text(post.author).font(.caption).foregroundStyle(JFTATheme.gold)
                 Text(post.body).textSelection(.enabled)
                 Divider()
                 ForEach(post.replies) { item in Card { Text(item.author).font(.caption.bold()).foregroundStyle(JFTATheme.gold); Text(item.text) } }
                 Card {
                     TextField("Write a local reply", text: $reply, axis: .vertical).lineLimit(2...6).accessibilityIdentifier("thread.reply")
-                    Button("Save reply") { do { try store.reply(postID: id, text: reply); reply = "" } catch { self.error = error.localizedDescription } }.buttonStyle(GoldButtonStyle()).accessibilityIdentifier("thread.saveReply")
+                    Button("Save reply") { do { try store.reply(postID: id, text: reply); reply = ""; JFTATheme.dismissKeyboard() } catch { self.error = error.localizedDescription } }.buttonStyle(GoldButtonStyle()).accessibilityIdentifier("thread.saveReply")
                 }
+                NavigationLink("Edit post", value: Route.editPost(id)).buttonStyle(GoldButtonStyle()).accessibilityIdentifier("thread.edit")
+                ShareLink(item: post.title + "\n\n" + post.body + "\n\nJFTA local discussion draft. Not published.") { Label("Export post text", systemImage: "square.and.arrow.up") }.accessibilityIdentifier("thread.share")
+                Button("Delete local discussion", role: .destructive) { JFTATheme.dismissKeyboard(); confirmDelete = true }.accessibilityIdentifier("thread.delete")
                 LocalBetaNote(text: "Replies are stored only here, not sent to a community server.")
             }
         }.navigationTitle("Discussion").appError($error)
+            .alert("Delete local discussion?", isPresented: $confirmDelete) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { do { try store.deletePost(id); dismiss() } catch { self.error = error.localizedDescription } }.accessibilityIdentifier("thread.confirmDelete")
+            } message: { Text("This removes the local post and its replies from this device. It cannot be undone.") }
     }
 }
 struct MarketplaceView: View {

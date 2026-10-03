@@ -7,6 +7,7 @@ final class AppStore: ObservableObject {
     private let disk: SnapshotStore
     let isTesting: Bool
     let documentsDirectory: URL
+    lazy var documentVault = DocumentVault(directory: documentsDirectory)
     var canWrite: Bool { storageError == nil }
 
     init() {
@@ -63,13 +64,11 @@ final class AppStore: ObservableObject {
     func toggleListing(_ id: String) throws { try change { if !$0.savedListingIDs.insert(id).inserted { $0.savedListingIDs.remove(id) } } }
     func markNoticesRead() throws { try change { state in for i in state.notices.indices { state.notices[i].read = true } } }
     func savePlan(_ name: String) throws { try change { $0.preferredPlan = name } }
-    func createPost(title: String, body: String) throws {
-        try Validation.request(title: title, details: body)
-        try change { state in
-            guard state.posts.count < 200 else { throw InputError.tooManyItems }
-            state.posts.insert(.init(title: Validation.trimmed(title), body: Validation.trimmed(body), author: state.profile.name), at: 0)
-        }
+    func createPost(title: String, body: String, editingID: UUID? = nil) throws {
+        try change { _ = try $0.storePost(title: title, body: body, editingID: editingID) }
     }
+    func deletePost(_ id: UUID) throws { try change { try $0.deletePost(id) } }
+    func removeDocumentReferences(_ id: String) throws { try change { $0.removeDocumentReferences(id) } }
     func reply(postID: UUID, text: String) throws {
         try change { try $0.appendReply(postID: postID, text: text) }
     }

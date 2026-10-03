@@ -46,6 +46,7 @@ struct ResetAccessView: View {
 }
 struct HomeView: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.dynamicTypeSize) private var typeSize: DynamicTypeSize
     var body: some View {
         Page {
             HStack(spacing: 12) {
@@ -64,7 +65,7 @@ struct HomeView: View {
             }.background(JFTATheme.surface).clipShape(RoundedRectangle(cornerRadius: 20))
             LocalBetaNote()
             SectionLabel(text: "Explore services")
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 12) {
                 ForEach([ServiceKind.legal, .health, .financial, .benefits]) { kind in
                     NavigationLink(value: Route.service(kind)) {
                         VStack(alignment: .leading, spacing: 14) {
@@ -77,15 +78,15 @@ struct HomeView: View {
             }
             SectionLabel(text: "Your workspace")
             HStack(spacing: 14) {
-                stat(value: String(store.snapshot.requests.count), label: "Local drafts", icon: "folder")
-                stat(value: String(store.snapshot.savedOfferIDs.count), label: "Saved offers", icon: "bookmark")
+                NavigationLink(value: Route.drafts) { stat(value: String(store.snapshot.requests.count), label: "Local drafts", icon: "folder") }.buttonStyle(.plain).accessibilityIdentifier("home.drafts")
+                NavigationLink(value: Route.savedOffers) { stat(value: String(store.snapshot.savedOfferIDs.count), label: "Saved offers", icon: "bookmark") }.buttonStyle(.plain).accessibilityIdentifier("home.savedOffers")
             }
             NavigationLink(value: Route.memberPass) { Card { RowLabel(title: "Member pass", detail: "View a clearly marked demo pass", symbol: "qrcode") } }.buttonStyle(.plain).accessibilityIdentifier("home.memberPass")
             if let request = store.snapshot.requests.first {
                 SectionLabel(text: "Latest draft")
                 NavigationLink(value: Route.caseDetail(request.id)) { Card { RowLabel(title: request.title, detail: request.statusLabel, symbol: request.service.symbol) } }.buttonStyle(.plain)
             }
-            NavigationLink(value: Route.documents) { Card { RowLabel(title: "Document vault", detail: "Keep sample files on this device", symbol: "doc.on.doc") } }.buttonStyle(.plain)
+            NavigationLink(value: Route.documents) { Card { RowLabel(title: "Document vault", detail: "Keep sample files on this device", symbol: "doc.on.doc") } }.buttonStyle(.plain).accessibilityIdentifier("home.documents")
         }.navigationTitle("JFTA").navigationBarTitleDisplayMode(.inline)
     }
     private func stat(value: String, label: String, icon: String) -> some View {
@@ -94,6 +95,8 @@ struct HomeView: View {
 }
 struct MemberPassView: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.dynamicTypeSize) private var typeSize: DynamicTypeSize
+    private var passLayout: AnyLayout { typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16)) : AnyLayout(HStackLayout(spacing: 16)) }
     var body: some View {
         Page {
             SectionLabel(text: "Your road. Your identity.")
@@ -102,9 +105,9 @@ struct MemberPassView: View {
                 Text(store.snapshot.profile.name).font(.title.bold()).accessibilityIdentifier("pass.name")
                 Text("Not an active membership").foregroundStyle(JFTATheme.secondary)
                 Divider()
-                HStack {
+                passLayout {
                     VStack(alignment: .leading, spacing: 8) { Text("JFTA LOCAL BETA").font(.caption.bold()); Text(String(store.snapshot.demoPassID.uuidString.prefix(8))).font(.system(.caption, design: .monospaced)); Text("NOT VALID FOR REDEMPTION").font(.caption2.bold()).foregroundStyle(JFTATheme.gold) }
-                    Spacer()
+                    if !typeSize.isAccessibilitySize { Spacer() }
                     if let image = qrImage {
                         Image(uiImage: image).interpolation(.none).resizable().scaledToFit().frame(width: 110, height: 110).padding(8).background(.white).clipShape(RoundedRectangle(cornerRadius: 10)).accessibilityLabel("Demo QR code, not a valid credential")
                     }

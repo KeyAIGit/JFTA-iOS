@@ -156,3 +156,35 @@ extension AppSnapshot {
         posts[i].replies.append(.init(text: Validation.trimmed(text), author: profile.name))
     }
 }
+
+extension AppSnapshot {
+    @discardableResult
+    mutating func storePost(title: String, body: String, editingID: UUID? = nil) throws -> UUID {
+        try Validation.request(title: title, details: body)
+        if let id = editingID {
+            guard let index = posts.firstIndex(where: { $0.id == id }) else { throw InputError.missingRecord }
+            posts[index].title = Validation.trimmed(title)
+            posts[index].body = Validation.trimmed(body)
+            return id
+        }
+        guard posts.count < 200 else { throw InputError.tooManyItems }
+        let post = CommunityPost(title: Validation.trimmed(title), body: Validation.trimmed(body), author: profile.name)
+        posts.insert(post, at: 0)
+        return post.id
+    }
+    mutating func deletePost(_ id: UUID) throws {
+        guard posts.contains(where: { $0.id == id }) else { throw InputError.missingRecord }
+        posts.removeAll { $0.id == id }
+    }
+    mutating func removeDocumentReferences(_ id: String) {
+        for i in requests.indices where requests[i].documentIDs.contains(id) {
+            requests[i].documentIDs.removeAll { $0 == id }
+            requests[i].updatedAt = Date()
+        }
+    }
+}
+extension ServiceRequest {
+    var exportText: String {
+        "JFTA LOCAL DRAFT (not submitted)\n\(reference)\n\(title)\nCategory: \(service.rawValue)\nLocation: \(state.isEmpty ? "Not specified" : state)\nDate: \(incidentDate.formatted(date: .abbreviated, time: .omitted))\n\n\(details)\n\nLocal attachment references: \(documentIDs.count). Files are not included in this text export."
+    }
+}

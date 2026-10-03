@@ -4,6 +4,7 @@ struct BenefitsView: View {
     @EnvironmentObject private var store: AppStore
     @State private var search = ""
     @State private var savedOnly = false
+    init(savedOnly: Bool = false) { _savedOnly = State(initialValue: savedOnly) }
     private var offers: [Offer] {
         Offer.samples.filter { (!savedOnly || store.snapshot.savedOfferIDs.contains($0.id)) && (search.isEmpty || ($0.title + " " + $0.category).localizedCaseInsensitiveContains(search)) }
     }

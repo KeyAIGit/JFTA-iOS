@@ -13,7 +13,7 @@ enum JFTATheme {
 }
 struct GoldButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.headline).foregroundStyle(.black).frame(maxWidth: .infinity, minHeight: 48)
+        configuration.label.font(.headline).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).foregroundStyle(.black).frame(maxWidth: .infinity, minHeight: 48)
             .padding(.horizontal, 14).background(JFTATheme.gold.opacity(configuration.isPressed ? 0.75 : 1))
             .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -90,5 +90,30 @@ extension View {
                     .accessibilityIdentifier("keyboard.done")
             }
         }
+    }
+}
+
+// Explicit back action protects editable forms without pretending changes were saved.
+private struct UnsavedChangesGuard: ViewModifier {
+    @Environment(\.dismiss) private var dismiss
+    let hasChanges: Bool
+    let identifier: String
+    @State private var showing = false
+    func body(content: Content) -> some View {
+        content.navigationBarBackButtonHidden(true).toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button { JFTATheme.dismissKeyboard(); if hasChanges { showing = true } else { dismiss() } }
+                    label: { Label("Back", systemImage: "chevron.left") }
+                    .accessibilityIdentifier(identifier + ".back")
+            }
+        }.alert("Discard unsaved changes?", isPresented: $showing) {
+            Button("Keep editing", role: .cancel) {}.accessibilityIdentifier(identifier + ".keepEditing")
+            Button("Discard changes", role: .destructive) { dismiss() }.accessibilityIdentifier(identifier + ".discard")
+        } message: { Text("Only your unsaved changes will be discarded. Previously saved data will remain unchanged.") }
+    }
+}
+extension View {
+    func guardUnsavedChanges(_ hasChanges: Bool, identifier: String) -> some View {
+        modifier(UnsavedChangesGuard(hasChanges: hasChanges, identifier: identifier))
     }
 }

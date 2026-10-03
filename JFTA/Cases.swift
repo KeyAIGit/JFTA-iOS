@@ -111,6 +111,9 @@ struct RequestFormView: View {
 }
 struct CaseDetailView: View {
     @EnvironmentObject private var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmDelete = false
+    @State private var error: String?
     let id: UUID
     var body: some View {
         Page {
@@ -127,9 +130,14 @@ struct CaseDetailView: View {
                 }
                 NavigationLink("Edit draft", value: Route.editRequest(id)).buttonStyle(GoldButtonStyle()).accessibilityIdentifier("caseDetail.edit")
                 NavigationLink(value: Route.caseDocuments(id)) { Card { RowLabel(title: "Attach sample documents", detail: "\(request.documentIDs.count) local reference(s)", symbol: "paperclip") } }.buttonStyle(.plain).accessibilityIdentifier("caseDetail.documents")
-                ShareLink(item: "JFTA LOCAL DRAFT (not submitted)\n\(request.title)\n\(request.service.rawValue)\n\(request.details)") { Label("Export draft text", systemImage: "square.and.arrow.up") }
+                ShareLink(item: request.exportText) { Label("Export draft text", systemImage: "square.and.arrow.up") }.accessibilityIdentifier("caseDetail.share")
+                Button("Delete local draft", role: .destructive) { confirmDelete = true }.accessibilityIdentifier("caseDetail.delete")
                 LocalBetaNote(text: "No case has been opened with a provider. No response is pending. You control whether to export this draft.")
             } else { EmptyPanel(symbol: "folder.badge.questionmark", title: "Draft not found", detail: "The local draft may have been deleted.") }
-        }.navigationTitle("Draft details")
+        }.navigationTitle("Draft details").appError($error)
+            .alert("Delete local draft?", isPresented: $confirmDelete) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { do { try store.deleteRequest(id); dismiss() } catch { self.error = error.localizedDescription } }.accessibilityIdentifier("caseDetail.confirmDelete")
+            } message: { Text("This removes the draft. Documents remain in the local vault and original files are not changed.") }
     }
 }

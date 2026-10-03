@@ -21,6 +21,13 @@ class SimulatorSelectionTests(unittest.TestCase):
     def test_prefers_standard_size(self):
         result=choose({'devices':{'x.iOS-26-2':[self.device('iPhone 17 Pro Max'),self.device('iPhone 17')]}})
         self.assertEqual(result['name'],'iPhone 17')
+    def test_compact_prefers_se_over_larger_newer_phone(self):
+        payload={'devices': {'x.iOS-26-2':[self.device('iPhone SE (3rd generation)')], 'x.iOS-26-5':[self.device('iPhone Air')]}}
+        self.assertEqual(choose(payload, 'compact')['name'], 'iPhone SE (3rd generation)')
+    def test_compact_falls_back_without_downloading(self):
+        self.assertEqual(choose({'devices': {'x.iOS-26-5':[self.device('iPhone 17'), self.device('iPhone 17 Pro Max')]}}, 'compact')['name'], 'iPhone 17')
+    def test_invalid_kind_fails(self):
+        with self.assertRaises(ValueError): choose({}, 'unknown')
     def test_missing_payload_fails(self):
         with self.assertRaises(ValueError):choose({})
 
