@@ -22,7 +22,8 @@ create table public.requests (
   incident_date date not null,
   status text not null default 'draft' check (status = 'draft'),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  unique (id, user_id)
 );
 create table public.request_documents (
   id uuid primary key default gen_random_uuid(),
