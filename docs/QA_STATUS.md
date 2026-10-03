@@ -1,19 +1,25 @@
-# JFTA native QA checkpoint
+# JFTA 0.2.2 (5): verified native acceptance
 
-Date: 2026-10-02. This file distinguishes actual Apple testing from source inspection.
+Local date: October 2, 2026 (America/Los_Angeles). CI timestamps are October 3 UTC.
+Tested commit: `9ec09bdfcc9278b572b82b7cd06a7d56eba98f7c`.
+Run: https://github.com/KeyAIGit/JFTA-iOS/actions/runs/37099600328
 
-## Completed reference run
+## Results actually verified
 
-GitHub Actions run 37073152609 tested commit `70a290dc507afcfa6cc4d3d9820296e6feae819` on the standard macos-26 runner, Xcode 26.6, iPhone Air Simulator / iOS 26.5 (23F77), arm64.
+- 55 Core XCTest cases passed on iOS Simulator.
+- 18 XCUITest UI scenarios passed on iOS Simulator.
+- Accepted evidence has zero failed or skipped tests; each declared test appears exactly once across the four selected shard results.
+- The first attempt of this commit had one failed navigation check in the document-preview scenario. That four-test group was retried once without changing the source. Initial failure evidence is retained separately; UI automation still showed intermittent timing sensitivity.
+- The app and both test bundles compiled with Xcode 26.6.
+- An unsigned Release archive for generic iOS completed successfully.
+- The same 55 Core tests also passed separately on Linux Swift 6.2.1; that is supplementary evidence, not an iOS substitute.
 
-The app and both test bundles compiled. **47 Core tests passed. Nine of 16 UI tests passed; seven failed.** The structured xcresult reports 63 tests, 56 passed, seven failed, zero skipped and zero expected failures. This was not a successful acceptance run. Release archiving did not run after the test failure.
+The evidence reconciliation requires the exact source commit, clean working trees, agreeing source archives, zero exit codes, test-summary totals matching pass records in xcodebuild logs, complete test selection, and ARCHIVE SUCCEEDED in the Release log. No mockup image is used as runtime evidence.
 
-The failing UI scenarios exposed an absent keyboard toolbar on pushed destinations and a Welcome field covered by the keyboard. Four service tests queried lazy cards before scrolling created them. The Quick Look test looked for an old Done label, but the actual iOS viewer had the close-button identifier `QLOverlayDoneButtonAccessibilityIdentifier` and displayed the sample successfully.
+## Scope and remaining checks
 
-## Corrections awaiting the next Apple run
+This is a working local beta, not a connected membership service. No Apple signing, installed physical iPhone test, signed IPA, App Store Connect upload, TestFlight processing or Apple review was performed. The document-import automation uses a fixture and does not validate external iCloud/File Providers. Real-device Files import/cancellation, sharing, low-storage behavior, large text, VoiceOver, smaller displays and supported-OS compatibility still require acceptance.
 
-The keyboard toolbar is applied to both root and destination screens; Welcome now has explicit focus/Next/Done navigation and scrolls the selected input into view. Service shortcuts are higher on Home. UI tests scroll before rejecting absent lazy cells and use the actual Quick Look close identifier plus stable document-delete identifiers. No test is removed or marked as an expected failure.
+Public repository CI is guarded against automatic allocation after a switch back to private. There is no automatic Apple distribution step. The app has no active backend, online account, membership, payments, submitted requests, appointments, live providers or synchronized community.
 
-Full acceptance now partitions all 16 UI cases exactly once across four standard public-only Mac jobs. Core tests and unsigned Release archiving run on shard 0. The seven partition helper tests and 42 project checks are source/tool checks, not replacement iOS results. A full success requires every shard to pass and complete union coverage of all UI methods.
-
-No Apple signing, physical iPhone test, IPA, TestFlight upload or Apple review is claimed. Online services remain disconnected. The original 0.2.0 archive and older logs are retained as historical material, not current acceptance evidence.
+Current evidence is contained in the separately retained acceptance package; older files under `validation/` and the 0.2.0 baseline hash document are historical records. Do not add historical counts to the current 73 distinct tests.

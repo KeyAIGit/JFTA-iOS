@@ -1,45 +1,49 @@
-# JFTA iOS
+# JFTA iOS 0.2.2 (5)
 
-Native SwiftUI local beta **0.2.1 (4)** for the JFTA trucking/member app. The screens use native controls and local data, not full-screen images with invisible hotspots.
+Native SwiftUI **local beta** for the JFTA trucking/member app. This is an actual Xcode project, not a set of screen images. Online services are not connected.
 
-## What works locally
+## Verified Xcode and Simulator checks
 
-Four tabs, editable onboarding and profile, request drafts with validation/search/edit/delete/export, document import/Quick Look/share/delete and draft attachment references, sample benefit and marketplace catalogs with saved items, readable resources, local posts/replies and activity notices. The demo member pass contains a random identifier, not a valid credential.
+Tested source commit: `9ec09bdfcc9278b572b82b7cd06a7d56eba98f7c`. GitHub Actions run: **37099600328**.
 
-There is **no backend, online login, active membership, payment, verified provider, submitted request, synchronized community or push service**. The interface identifies local and sample states. Use non-sensitive sample files. Removing the app can remove its local data.
+**55 Core tests + 18 UI tests passed in the accepted shard evidence, with no skipped tests.** The first attempt of this same commit had one failed UI navigation check; that group was retried once without source changes. The retry history is retained, and this is not a claim of a flawless first run or completely stable UI automation. The independent evidence reconciliation checked every declared test against its real XCTest pass log, exactly once across all four shards. Both the Simulator build and the unsigned Release archive for a generic iOS target succeeded.
 
-## Verification
+This does not prove a signed installation, a real-device pass, TestFlight processing, Apple approval, accessibility on every screen or compatibility with every supported iOS version. See `docs/QA_STATUS.md` and `docs/TESTFLIGHT_HANDOFF.md`.
 
-Read `docs/QA_STATUS.md` for the exact tested commit and actual run results. There are 47 Foundation tests and 16 UI scenarios. A test being present does not mean it passed. Historical logs and `docs/native-source-baseline.json` refer to the original 0.2.0 source, not proof of this version.
+## Open on a Mac
 
-The original baseline was genuinely compiled with Xcode 26.6 and ran 37 passing Core tests on iOS Simulator. Its complete UI run did not pass: the UI harness hit a timeout and was cancelled. Version 0.2.1 fixes missing-record updates, adds keyboard dismissal, expands regression coverage and uses one simulator architecture with realistic test allowances.
+Open **JFTA.xcodeproj** and choose scheme **JFTA**, then an installed iPhone Simulator. The verified environment used **Xcode 26.6**. The minimum deployment target is iOS 17; this is not a claim that iOS 17 was tested. No third-party Swift dependency or backend credential is needed.
 
-## Open and test on a Mac
+From the project folder:
 
-Open `JFTA.xcodeproj`, choose scheme **JFTA** and an installed iPhone Simulator. Minimum deployment target: iOS 17. CI pins Xcode 26.6 on the standard `macos-26` runner. No third-party Swift package or backend credential is required.
+```sh
+bash scripts/ci_macos.sh unit
+bash scripts/ci_macos.sh all
+```
 
-From the project directory, run `bash scripts/ci_macos.sh unit` for the compiler/Core check or `bash scripts/ci_macos.sh all` for Core/UI tests and an unsigned Release archive. Use an installed full Xcode and iPhone runtime. Logs, the result bundle and real screenshot attachments are written under `build/ci`. An unsigned archive is not an installable IPA and cannot substitute for Apple signing.
+The second command runs Core/UI tests and an unsigned Release archive. Genuine logs, xcresult and screenshot attachments are stored in `build/ci`. The unsigned archive is not an installable IPA. The authorized Apple account owner must select their Team and a registered Bundle ID, test on an iPhone, then create a signed archive for App Store Connect. Never put signing credentials in Git.
 
-## GitHub Actions and privacy
+## Local functions
 
-The manual-only workflow allocates a standard Mac **only while this repository is public**. Returning it to private blocks allocation; no paid private run is automatically enabled. There are no push, pull-request or scheduled triggers. A public copy may remain with someone who downloaded or forked it even after visibility changes. No open-source license is granted by this README.
+Editable profile/onboarding; four native tabs; validated request drafts with search, edit, delete, export and unsaved-change confirmation; local document import, preview, sharing and removal; sample benefits and marketplace catalogs with saved items; readable resources; local discussion drafts/replies and activity notices. The pass QR contains a demo identifier only.
 
-Full acceptance is partitioned across four standard Macs, with a 40-minute per-job limit and one-day evidence retention. Every UI case is assigned once; Core tests and the unsigned Release archive run on shard 0. Unit-only mode allocates one Mac. Actions are pinned to exact commits, checkout does not persist credentials and no Apple secrets are used. Standard public-repository runner compute is free under GitHub's applicable terms, not technically unlimited. Do not enable larger runners or a paid service without owner authorization.
+There is **no online login, server synchronization, verified membership, provider request submission, appointment booking, live community, payment or push service**. The app labels local/sample states. Use non-sensitive sample files and keep originals elsewhere. Deleting the app can remove local data.
 
-## Device acceptance and TestFlight
+## Changes in this revision
 
-A passing simulator suite does not prove real-iPhone or distribution readiness. Check external Files/iCloud import and cancellation, Quick Look, sharing, keyboard overlap, Dynamic Type, VoiceOver, small-screen layouts, background/lock/unlock and update persistence on a physical device. The automated document import uses a test fixture, not an external file provider.
+Request forms now warn before discarding unsaved changes. Discarding an edit preserves the previous saved draft. Successful profile/request saves dismiss the keyboard. Document previews use the native Quick Look renderer inside a SwiftUI sheet with an explicit close action and local sharing. The UI test driver waits until the entire injected text is visible before saving. Additional file-store regression checks reject unsafe symbolic-link paths, invalid import limits, oversized state files and deletion of directories or aliases in the local vault.
 
-See `docs/TESTFLIGHT_HANDOFF.md`. The authorized account owner must choose the intended publisher, Developer Team and permanent Bundle ID before building a signed archive. Do not send Apple passwords, two-factor codes or signing keys in chat or Git. The current `org.jftateam.memberapp` is a placeholder. App review and TestFlight acceptance are separate checks, not guaranteed by CI.
+## GitHub Actions
 
-## Local checks and source
+The workflow is manual-only and uses standard `macos-26` runners, four test shards, a 40-minute per-job hang safeguard and one-day evidence retention. Core tests and the unsigned archive run on shard 0. A public-repository gate prevents this workflow from allocating a private-repository runner. There are no automatic push, schedule or TestFlight publication triggers, and no Apple secrets.
 
-`swift test` executes the Foundation package. `python3 scripts/validate_project.py` checks project/resource/CI structure; `python3 scripts/test_ci_scripts.py` tests simulator selection on fixtures. `bash -n scripts/ci_macos.sh` checks shell syntax. These checks do not replace Xcode.
+GitHub's standard public-repository runner compute is free under its applicable terms, but concurrency, job duration and storage are not unlimited. Larger runners must not be enabled without owner authorization. Closing a public repository cannot recall copies already downloaded or public forks. This README does not grant an open-source license.
 
-`scripts/generate_project.py` regenerates the project and shared scheme. `scripts/import_existing_assets.py` was a one-time, hash-verified import from the owner's old source and is not needed to build. The original 0.2.0 ZIP is retained separately with SHA256 `c80ab597053c7f9ce05517435cac19f39ac702d6fc5082a2aefc64e4b1cb7567`.
+## Source provenance
 
-Official references checked 2026-10-02:
+`SOURCE_PROVENANCE.json` records the tested archive hash and file hashes. The source, tests, resources, Xcode project and workflow in this delivery are byte-identical to the tested commit. The README and QA/handoff documents were updated after testing; the original baseline manifest and older validation logs remain historical evidence, not proof of this revision.
+
+Official references checked October 2, 2026:
 - https://docs.github.com/en/actions/reference/runners/github-hosted-runners
 - https://docs.github.com/en/actions/reference/limits
-- https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility
 - https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/

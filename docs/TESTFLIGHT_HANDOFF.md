@@ -1,4 +1,4 @@
-# JFTA 0.2.1: handoff to the authorized Apple account owner
+# JFTA 0.2.2 (5): handoff to the authorized Apple account owner
 
 The source is a native, local-functionality beta. Consult `QA_STATUS.md` for the exact tested revision and limitations. No Apple account, signing key, certificate, provisioning profile, IPA or App Store Connect record was created or used by GitHub CI.
 
@@ -19,7 +19,7 @@ Never send Apple passwords, two-factor codes, private keys or certificates throu
 
 ## What to test on the real device
 
-Create a sample profile, edit it and relaunch. Create/edit a request, attach a non-sensitive test file and relaunch. Import from Apple Files, cancel an import, preview with Quick Look, use the share sheet, then delete only the local copy and verify the original file remains. Try an invalid/oversized file and low-storage failures. Exercise keyboard dismissal, large text, VoiceOver, backgrounding, lock/unlock and updating the app without uninstalling it. Do not keep the only copy of important information in this beta.
+Create a sample profile, edit it and relaunch. Create/edit a request, attach a non-sensitive test file and relaunch. Import from Apple Files, cancel an import, preview with Quick Look, use the share sheet, then delete only the local copy and verify the original file remains. Try an invalid/oversized file and low-storage failures. Exercise unsaved-change confirmation, keyboard dismissal, document-preview closure and sharing, large text, VoiceOver, backgrounding, lock/unlock and updating the app without uninstalling it. Do not keep the only copy of important information in this beta.
 
 ## Accurate beta description
 
