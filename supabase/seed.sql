@@ -1,0 +1,2 @@
+-- Intentionally empty. JFTA does not seed fake members, professionals, payments, or cases.
+-- Use disposable Auth test users when validating RLS against a hosted project.
