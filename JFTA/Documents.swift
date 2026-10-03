@@ -36,7 +36,7 @@ struct DocumentsView: View {
     @State private var importing = false
     @State private var busy = false
     @State private var error: String?
-    @State private var previewURL: URL?
+    @State private var previewDocument: LocalDocument?
     @State private var pendingDelete: LocalDocument?
     @State private var notice = ""
     private var filtered: [LocalDocument] { documents.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) } }
@@ -53,7 +53,7 @@ struct DocumentsView: View {
             }
             ForEach(filtered) { document in
                 HStack {
-                    Button { previewURL = document.url } label: {
+                    Button { previewDocument = document } label: {
                         HStack { Image(systemName: "doc.text").foregroundStyle(JFTATheme.gold); Text(document.name).font(.subheadline).foregroundStyle(.white).lineLimit(2); Spacer() }
                     }.buttonStyle(.plain).accessibilityIdentifier("document.preview")
                     if let requestID {
@@ -81,7 +81,20 @@ struct DocumentsView: View {
                 case .failure(let failure): error = failure.localizedDescription
                 }
             }
-            .quickLookPreview($previewURL)
+            .sheet(item: $previewDocument) { document in
+                NavigationStack {
+                    DocumentQuickLook(document: document)
+                        .navigationTitle(document.name).navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                ShareLink(item: document.url) { Label("Share", systemImage: "square.and.arrow.up") }
+                            }
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { previewDocument = nil }.accessibilityIdentifier("document.preview.close")
+                            }
+                        }
+                }
+            }
             .task { if vault == nil { vault = DocumentVault(directory: store.documentsDirectory) }; await refresh() }
             .confirmationDialog("Delete only this local copy?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
                 Button("Delete local copy", role: .destructive) { removePending() }.accessibilityIdentifier("documents.confirmDelete")
@@ -131,5 +144,30 @@ struct DocumentsView: View {
             } catch { self.error = error.localizedDescription }
             await refresh(); busy = false
         }
+    }
+}
+
+// The app owns dismissal; Quick Look remains the real document renderer.
+private struct DocumentQuickLook: UIViewControllerRepresentable {
+    let document: LocalDocument
+    func makeCoordinator() -> Coordinator { Coordinator(document) }
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+    func updateUIViewController(_ controller: QLPreviewController, context: Context) {}
+    final class PreviewItem: NSObject, QLPreviewItem {
+        let previewItemURL: URL?
+        let previewItemTitle: String?
+        init(_ document: LocalDocument) {
+            previewItemURL = document.url; previewItemTitle = document.name
+        }
+    }
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let item: PreviewItem
+        init(_ document: LocalDocument) { item = PreviewItem(document) }
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem { item }
     }
 }

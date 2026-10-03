@@ -23,18 +23,25 @@ final class JFTAUITests: XCTestCase {
     private func tab(_ title: String) {
         let button = app.tabBars.buttons[title]; XCTAssertTrue(button.waitForExistence(timeout: 8)); button.tap()
     }
-    private func dismissSystemTypingHint() {
+    @discardableResult
+    private func dismissSystemTypingHint() -> Bool {
         let tip = app.staticTexts.containing(NSPredicate(format: "label CONTAINS[c] %@", "Speed up your typing")).firstMatch
-        if tip.waitForExistence(timeout: 0.5) && app.buttons["Continue"].exists { app.buttons["Continue"].tap() }
+        if tip.exists && app.buttons["Continue"].exists { app.buttons["Continue"].tap(); return true }
+        return false
     }
     private func shot(_ name: String) {
         dismissSystemTypingHint()
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     private func type(_ id: String, _ text: String) {
-        let e = element(id); XCTAssertTrue(e.waitForExistence(timeout: 8)); e.tap()
-        dismissSystemTypingHint()
-        e.typeText(text)
+        let e = element(id); XCTAssertTrue(e.waitForExistence(timeout: 8))
+        // Native keyboard/tutorial transitions can consume a focus tap. Type only once, after readiness.
+        for attempt in 1...3 {
+            XCTContext.runActivity(named: "Focus \(id), attempt \(attempt)") { _ in e.tap() }
+            if dismissSystemTypingHint() { e.tap() }
+            if app.keyboards.firstMatch.waitForExistence(timeout: 4) { e.typeText(text); return }
+        }
+        XCTFail("Keyboard did not become available for \(id)")
     }
     private func back() { let button = app.navigationBars.buttons.element(boundBy: 0); XCTAssertTrue(button.waitForExistence(timeout: 5)); button.tap() }
 
@@ -113,8 +120,8 @@ final class JFTAUITests: XCTestCase {
         launch(); tab("More"); tap("more.documents"); tap("documents.testSample"); tap("document.preview")
         let preview = app.otherElements["QLPreviewControllerView"].firstMatch
         XCTAssertTrue(preview.waitForExistence(timeout: 8))
-        let done = app.buttons.matching(NSPredicate(format: "identifier == %@ OR label == %@", "QLOverlayDoneButtonAccessibilityIdentifier", "Done")).firstMatch
-        XCTAssertTrue(done.waitForExistence(timeout: 8)); shot("document-quicklook"); done.tap()
+        let done = app.buttons.matching(identifier: "document.preview.close").firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 8)); XCTAssertTrue(done.isHittable); shot("document-quicklook"); done.tap()
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: preview); waitForExpectations(timeout: 8)
         tap("document.actions"); tap("document.delete"); tap("documents.confirmDelete")
         expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: element("document.preview")); waitForExpectations(timeout: 8); shot("documents-after-delete")
