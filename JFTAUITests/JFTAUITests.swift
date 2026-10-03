@@ -39,7 +39,16 @@ final class JFTAUITests: XCTestCase {
         for attempt in 1...3 {
             XCTContext.runActivity(named: "Focus \(id), attempt \(attempt)") { _ in e.tap() }
             if dismissSystemTypingHint() { e.tap() }
-            if app.keyboards.firstMatch.waitForExistence(timeout: 4) { e.typeText(text); return }
+            if app.keyboards.firstMatch.waitForExistence(timeout: 4) {
+                e.typeText(text)
+                // Simulator key delivery may outlive typeText(). Never save a partially delivered input.
+                let entered = text.trimmingCharacters(in: .newlines)
+                if !entered.isEmpty {
+                    let complete = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value CONTAINS %@", entered), object: e)
+                    XCTAssertEqual(XCTWaiter.wait(for: [complete], timeout: 20), .completed, "Input was not fully delivered to \(id)")
+                }
+                return
+            }
         }
         XCTFail("Keyboard did not become available for \(id)")
     }
